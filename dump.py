@@ -47,3 +47,36 @@ for node in board:
         continue
     at = child(node, "at")
     print(ref, at[1], at[2], child(node, "layer")[1], props.get("Value"))
+
+
+def xy(node):
+    return float(node[1]), float(node[2])
+
+
+print()
+xs, ys = [], []
+for node in board:
+    if not isinstance(node, list) or not node[0].startswith("gr_"):
+        continue
+    if child(node, "layer")[1] != "Edge.Cuts":
+        continue
+    kind = node[0][3:]
+    if kind == "rect":
+        (x1, y1), (x2, y2) = xy(child(node, "start")), xy(child(node, "end"))
+        print("rect", x1, y1, x2, y2, child(node, "radius"))
+        xs += [x1, x2]
+        ys += [y1, y2]
+    elif kind == "line":
+        (x1, y1), (x2, y2) = xy(child(node, "start")), xy(child(node, "end"))
+        print("line", x1, y1, x2, y2)
+        xs += [x1, x2]
+        ys += [y1, y2]
+    elif kind == "arc":
+        for key in ("start", "mid", "end"):
+            x, y = xy(child(node, key))
+            xs.append(x)
+            ys.append(y)
+        print("arc", *(xy(child(node, k)) for k in ("start", "mid", "end")))
+    else:
+        print("?", kind)
+print("extent", min(xs), min(ys), max(xs), max(ys))
