@@ -1,5 +1,10 @@
 import uuid
 
+# Fixed namespace: the same UUIDs every run, so the schematic symbols and
+# the board footprints stay linked across regenerations.
+NS = uuid.UUID("6f2b1c40-9a1e-5d3a-8c77-2f1d5a6b3e90")
+NAME = "fakir"
+
 # copied from dump.py, B.Cu only
 TPS = [
     ("TP7", 45.79, 35.82, "VBAT"),
@@ -60,6 +65,7 @@ TESTPOINT = """\t(footprint "TestPoint:TestPoint_Pad_D1.5mm"
 \t\t(property "Value" "{value}" (at 0 1.5 0) (layer "B.Fab") (hide yes)
 \t\t\t(uuid "{uid2}") (effects (font (size 1 1) (thickness 0.15))
 \t\t\t(justify mirror)))
+\t\t(path "/{symbol}") (sheetname "/") (sheetfile "fakir.kicad_sch")
 \t\t(attr exclude_from_pos_files exclude_from_bom)
 \t\t(pad "1" smd circle (at 0 0) (size 1.5 1.5)
 \t\t\t(layers "B.Cu" "B.Mask") (uuid "{uid3}"))
@@ -67,15 +73,16 @@ TESTPOINT = """\t(footprint "TestPoint:TestPoint_Pad_D1.5mm"
 """
 
 
-def uid():
-    return str(uuid.uuid4())
+def uid(*parts):
+    return str(uuid.uuid5(NS, NAME + "|" + "|".join(parts)))
 
 
 def rect(x1, y1, x2, y2, layer, width):
     corners = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
     out = ""
     for (ax, ay), (bx, by) in zip(corners, corners[1:] + corners[:1]):
-        out += LINE.format(ax, ay, bx, by, width, layer, uid())
+        out += LINE.format(ax, ay, bx, by, width, layer,
+                           uid("line", layer, str(ax), str(ay)))
     return out
 
 
@@ -86,7 +93,9 @@ if __name__ == "__main__":
                 "Edge.Cuts", 0.1)
     out += rect(x1, y1, x2, y2, "F.SilkS", 0.12)
     for ref, x, y, value in TPS:
-        out += TESTPOINT.format(uid=uid(), uid1=uid(), uid2=uid(),
-                                uid3=uid(), ref=ref, x=x, y=y, value=value)
+        out += TESTPOINT.format(uid=uid("fp", ref), uid1=uid("ref", ref),
+                                uid2=uid("value", ref), uid3=uid("pad", ref),
+                                symbol=uid("sym", ref), ref=ref, x=x, y=y,
+                                value=value)
     out += "\t(embedded_fonts no)\n)\n"
     open("fakir.kicad_pcb", "w").write(out)
