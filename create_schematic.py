@@ -53,7 +53,7 @@ SYMBOL = """\t(symbol
 \t\t\t(effects (font (size 1.27 1.27)) (justify left)))
 \t\t(property "Value" "{value}" (at {rx} {vy} 0)
 \t\t\t(effects (font (size 1.27 1.27)) (justify left)))
-\t\t(property "Footprint" "TestPoint:TestPoint_Pad_D1.5mm" (at {x} {y} 0)
+\t\t(property "Footprint" "fakir:PogoPin_D1.2mm" (at {x} {y} 0)
 \t\t\t(hide yes) (effects (font (size 1.27 1.27))))
 \t\t(property "Datasheet" "" (at {x} {y} 0) (hide yes)
 \t\t\t(effects (font (size 1.27 1.27))))
