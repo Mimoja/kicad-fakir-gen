@@ -1,5 +1,7 @@
 import re
 
+import yaml
+
 BOARD = "../AddonBoard.kicad_pcb"
 
 
@@ -37,46 +39,52 @@ def properties(footprint):
             if isinstance(item, list) and item[0] == "property"}
 
 
-board = parse(open(BOARD).read())
-for node in board:
-    if not isinstance(node, list) or node[0] != "footprint":
-        continue
-    props = properties(node)
-    ref = props.get("Reference", "")
-    if not re.match(r"^TP\d+$", ref):
-        continue
-    at = child(node, "at")
-    print(ref, at[1], at[2], child(node, "layer")[1], props.get("Value"))
-
-
 def xy(node):
     return float(node[1]), float(node[2])
 
 
-print()
-xs, ys = [], []
-for node in board:
-    if not isinstance(node, list) or not node[0].startswith("gr_"):
-        continue
-    if child(node, "layer")[1] != "Edge.Cuts":
-        continue
-    kind = node[0][3:]
-    if kind == "rect":
-        (x1, y1), (x2, y2) = xy(child(node, "start")), xy(child(node, "end"))
-        print("rect", x1, y1, x2, y2, child(node, "radius"))
-        xs += [x1, x2]
-        ys += [y1, y2]
-    elif kind == "line":
-        (x1, y1), (x2, y2) = xy(child(node, "start")), xy(child(node, "end"))
-        print("line", x1, y1, x2, y2)
-        xs += [x1, x2]
-        ys += [y1, y2]
-    elif kind == "arc":
+def config():
+    return yaml.safe_load(open("config.yaml"))
+
+
+def board():
+    return parse(open(BOARD).read())
+
+
+def test_points(board, pattern, side):
+    out = []
+    for node in board:
+        if not isinstance(node, list) or node[0] != "footprint":
+            continue
+        props = properties(node)
+        ref = props.get("Reference", "")
+        if not re.match(pattern, ref) or child(node, "layer")[1] != side:
+            continue
+        x, y = xy(child(node, "at"))
+        out.append((ref, x, y, props.get("Value", ref)))
+    return sorted(out, key=lambda tp: int(re.sub(r"\D", "", tp[0]) or 0))
+
+
+def outline(board):
+    # only the bounding box for now; arcs and rounded rects are ignored
+    xs, ys = [], []
+    for node in board:
+        if not isinstance(node, list) or not node[0].startswith("gr_"):
+            continue
+        if child(node, "layer")[1] != "Edge.Cuts":
+            continue
         for key in ("start", "mid", "end"):
-            x, y = xy(child(node, key))
-            xs.append(x)
-            ys.append(y)
-        print("arc", *(xy(child(node, k)) for k in ("start", "mid", "end")))
-    else:
-        print("?", kind)
-print("extent", min(xs), min(ys), max(xs), max(ys))
+            point = child(node, key)
+            if point:
+                x, y = xy(point)
+                xs.append(x)
+                ys.append(y)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+if __name__ == "__main__":
+    cfg = config()
+    b = board()
+    for tp in test_points(b, cfg["ref_pattern"], cfg["test_point_side"]):
+        print(*tp)
+    print("extent", *outline(b))

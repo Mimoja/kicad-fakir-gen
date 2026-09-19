@@ -1,40 +1,20 @@
 import os
 import uuid
 
+import dump
+
 # Fixed namespace: the same UUIDs every run, so the schematic symbols and
 # the board footprints stay linked across regenerations.
 NS = uuid.UUID("6f2b1c40-9a1e-5d3a-8c77-2f1d5a6b3e90")
 NAME = "fakir"
 
-# copied from dump.py, B.Cu only
-TPS = [
-    ("TP7", 45.79, 35.82, "VBAT"),
-    ("TP11", 56.4, 72.725, "+3.3V"),
-    ("TP12", 62.7, 72.725, "SWCLK"),
-    ("TP13", 65.85, 72.725, "SWDIO"),
-    ("TP14", 59.55, 72.725, "GND"),
-    ("TP15", 69.0, 72.725, "RUN"),
-    ("TP18", 46.25, 21.65, "UART_0_RX"),
-    ("TP19", 46.25, 18.1, "UART_0_TX"),
-    ("TP20", 29.05, 27.05, "UART_1_TX"),
-    ("TP21", 32.3, 27.05, "UART_1_RX"),
-    ("TP22", 21.34, 55.973333, "PWM4"),
-    ("TP23", 21.34, 62.596667, "PWM5"),
-    ("TP24", 21.34, 69.22, "PWM6"),
-    ("TP25", 21.34, 49.35, "PWM3"),
-    ("TP26", 22.6, 39.05, "PWM2"),
-    ("TP27", 22.7, 26.95, "PWM1"),
-    ("TP28", 28.5, 18.35, "GND"),
-    ("TP29", 25.15, 18.35, "+3.3V"),
-]
-OUTLINE = (14.250267, 13.336867, 76.500267, 78.999999)   # rect, radius 4
 MARGIN = 7.0
 
 HEAD = """(kicad_pcb
 \t(version 20260206)
 \t(generator "fakir")
 \t(generator_version "10.0")
-\t(general (thickness 1.6) (legacy_teardrops no))
+\t(general (thickness {thickness}) (legacy_teardrops no))
 \t(paper "A4")
 \t(layers
 \t\t(0 "F.Cu" signal)
@@ -51,6 +31,10 @@ HEAD = """(kicad_pcb
 \t)
 \t(setup (pad_to_mask_clearance 0))
 \t(net 0 "")
+"""
+
+NOTE = """\t(gr_text "{text}" (at {x} {y} 0) (layer "{layer}") (uuid "{uid}")
+\t\t(effects (font (size 1.2 1.2) (thickness 0.18)){mirror}))
 """
 
 LINE = """\t(gr_line (start {} {}) (end {} {})
@@ -103,11 +87,21 @@ def rect(x1, y1, x2, y2, layer, width):
 
 
 if __name__ == "__main__":
-    x1, y1, x2, y2 = OUTLINE
-    out = HEAD
+    cfg = dump.config()
+    b = dump.board()
+    TPS = dump.test_points(b, cfg["ref_pattern"], cfg["test_point_side"])
+    x1, y1, x2, y2 = dump.outline(b)
+    out = HEAD.format(thickness=cfg["pcb"]["thickness"])
     out += rect(x1 - MARGIN, y1 - MARGIN, x2 + MARGIN, y2 + MARGIN,
                 "Edge.Cuts", 0.1)
     out += rect(x1, y1, x2, y2, "F.SilkS", 0.12)
+    # say which side is which, in the margin above the board
+    cx, ny = (x1 + x2) / 2, y2 + MARGIN / 2
+    out += NOTE.format(text=cfg["pcb"]["note_top"], x=cx, y=ny,
+                       layer="F.SilkS", uid=uid("note", "top"), mirror="")
+    out += NOTE.format(text=cfg["pcb"]["note_bottom"], x=cx, y=ny,
+                       layer="B.SilkS", uid=uid("note", "bottom"),
+                       mirror=" (justify mirror)")
     for ref, x, y, value in TPS:
         out += HOLE.format(uid=uid("fp", ref), uid1=uid("ref", ref),
                            uid2=uid("value", ref), uid3=uid("pad", ref),

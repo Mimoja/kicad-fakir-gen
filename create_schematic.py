@@ -1,6 +1,7 @@
 import json
 
-from create_pcb import NAME, TPS, uid
+import dump
+from create_pcb import NAME, uid
 
 HEAD = """(kicad_sch
 \t(version 20260306)
@@ -65,6 +66,9 @@ SYMBOL = """\t(symbol
 \t)
 """
 
+cfg = dump.config()
+TPS = dump.test_points(dump.board(), cfg["ref_pattern"],
+                       cfg["test_point_side"])
 root = uid("sheet", "root")
 out = HEAD.format(uid=root)
 for index, (ref, _, _, value) in enumerate(TPS):

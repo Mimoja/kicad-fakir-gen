@@ -1,0 +1,9 @@
+# Which side of the board the pogo pins land on
+test_point_side: "B.Cu"
+# Which footprints count as test points
+ref_pattern: "^TP\\d+$"
+
+pcb:
+  thickness: 1.6
+  note_top: "Only the pogo pins on this side"
+  note_bottom: "Business logic goes on this side"
