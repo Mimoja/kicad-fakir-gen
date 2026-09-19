@@ -79,13 +79,14 @@ def rect(x1, y1, x2, y2, layer, width):
     return out
 
 
-x1, y1, x2, y2 = OUTLINE
-out = HEAD
-out += rect(x1 - MARGIN, y1 - MARGIN, x2 + MARGIN, y2 + MARGIN,
-            "Edge.Cuts", 0.1)
-out += rect(x1, y1, x2, y2, "F.SilkS", 0.12)
-for ref, x, y, value in TPS:
-    out += TESTPOINT.format(uid=uid(), uid1=uid(), uid2=uid(), uid3=uid(),
-                            ref=ref, x=x, y=y, value=value)
-out += "\t(embedded_fonts no)\n)\n"
-open("fakir.kicad_pcb", "w").write(out)
+if __name__ == "__main__":
+    x1, y1, x2, y2 = OUTLINE
+    out = HEAD
+    out += rect(x1 - MARGIN, y1 - MARGIN, x2 + MARGIN, y2 + MARGIN,
+                "Edge.Cuts", 0.1)
+    out += rect(x1, y1, x2, y2, "F.SilkS", 0.12)
+    for ref, x, y, value in TPS:
+        out += TESTPOINT.format(uid=uid(), uid1=uid(), uid2=uid(),
+                                uid3=uid(), ref=ref, x=x, y=y, value=value)
+    out += "\t(embedded_fonts no)\n)\n"
+    open("fakir.kicad_pcb", "w").write(out)
