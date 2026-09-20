@@ -1,7 +1,7 @@
 import json
 
 import dump
-from create_pcb import NAME, uid
+from create_pcb import MARGIN, NAME, mounts, uid
 
 HEAD = """(kicad_sch
 \t(version 20260306)
@@ -43,6 +43,54 @@ HEAD = """(kicad_sch
 \t\t\t\t\t(number "1" (effects (font (size 1.27 1.27))))))
 \t\t\t(embedded_fonts no)
 \t\t)
+\t\t(symbol "Mechanical:MountingHole"
+\t\t\t(pin_numbers (hide yes))
+\t\t\t(pin_names (offset 1.016) (hide yes))
+\t\t\t(exclude_from_sim yes) (in_bom yes) (on_board yes) (in_pos_files no)
+\t\t\t(duplicate_pin_numbers_are_jumpers no)
+\t\t\t(property "Reference" "H" (at 0 5.08 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (effects (font (size 1.27 1.27))))
+\t\t\t(property "Value" "MountingHole" (at 0 3.175 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (effects (font (size 1.27 1.27))))
+\t\t\t(property "Footprint" "" (at 0 0 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (hide yes)
+\t\t\t\t(effects (font (size 1.27 1.27))))
+\t\t\t(property "Datasheet" "~" (at 0 0 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (hide yes)
+\t\t\t\t(effects (font (size 1.27 1.27))))
+\t\t\t(property "Description" "Mounting Hole without connection"
+\t\t\t\t(at 0 0 0) (show_name no) (do_not_autoplace no) (hide yes)
+\t\t\t\t(effects (font (size 1.27 1.27))))
+\t\t\t(property "ki_keywords" "mounting hole" (at 0 0 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (hide yes)
+\t\t\t\t(effects (font (size 1.27 1.27))))
+\t\t\t(property "ki_fp_filters" "MountingHole*" (at 0 0 0) (show_name no)
+\t\t\t\t(do_not_autoplace no) (hide yes)
+\t\t\t\t(effects (font (size 1.27 1.27))))
+\t\t\t(symbol "MountingHole_0_1"
+\t\t\t\t(circle (center 0 0) (radius 1.27)
+\t\t\t\t\t(stroke (width 1.27) (type default)) (fill (type none))))
+\t\t\t(embedded_fonts no)
+\t\t)
+\t)
+"""
+
+MOUNT = """\t(symbol
+\t\t(lib_id "Mechanical:MountingHole") (at {x} {y} 0) (unit 1)
+\t\t(exclude_from_sim yes) (in_bom yes) (on_board yes) (in_pos_files no)
+\t\t(dnp no) (uuid "{uid}")
+\t\t(property "Reference" "{ref}" (at {rx} {ry} 0)
+\t\t\t(effects (font (size 1.27 1.27)) (justify left)))
+\t\t(property "Value" "MountingHole_M3" (at {rx} {y} 0)
+\t\t\t(effects (font (size 1.27 1.27)) (justify left)))
+\t\t(property "Footprint" "MountingHole:MountingHole_3.2mm_M3" (at {x} {y} 0)
+\t\t\t(hide yes) (effects (font (size 1.27 1.27))))
+\t\t(property "Datasheet" "" (at {x} {y} 0) (hide yes)
+\t\t\t(effects (font (size 1.27 1.27))))
+\t\t(property "Description" "M3 mounting hole" (at {x} {y} 0) (hide yes)
+\t\t\t(effects (font (size 1.27 1.27))))
+\t\t(instances (project "{name}" (path "/{root}"
+\t\t\t(reference "{ref}") (unit 1))))
 \t)
 """
 
@@ -77,6 +125,11 @@ for index, (ref, _, _, value) in enumerate(TPS):
     out += SYMBOL.format(x=x, y=y, rx=x + 2.54, ry=y - 6.35, vy=y - 3.81,
                          ref=ref, value=value, uid=uid("sym", ref),
                          pin=uid("pin", ref), name=NAME, root=root)
+row = 30.48 + (len(TPS) // 6 + 1) * 25.4
+for index, (ref, _, _) in enumerate(mounts(0, 0, 2 * MARGIN)):
+    x = 30.48 + index * 25.4
+    out += MOUNT.format(x=x, y=row, rx=x + 2.54, ry=row - 2.54, ref=ref,
+                        uid=uid("mountsym", ref), name=NAME, root=root)
 out += "\t(sheet_instances (path \"/\" (page \"1\")))\n"
 out += "\t(embedded_fonts no)\n)\n"
 open("fakir.kicad_sch", "w").write(out)

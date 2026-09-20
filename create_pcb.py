@@ -78,6 +78,43 @@ HOLE = """\t(footprint "fakir:PogoPin_D{drill}mm"
 """
 
 
+# KiCad's own MountingHole_3.2mm_M3, as far as a board needs it
+MOUNT = """\t(footprint "MountingHole:MountingHole_3.2mm_M3"
+\t\t(layer "F.Cu") (uuid "{uid}") (at {x} {y})
+\t\t(descr "Mounting Hole 3.2mm, no annular, M3")
+\t\t(tags "mounting hole 3.2mm no annular m3")
+\t\t(property "Reference" "{ref}" (at 0 -4.2 0) (layer "F.SilkS") (hide yes)
+\t\t\t(uuid "{uid1}") (effects (font (size 1 1) (thickness 0.15))))
+\t\t(property "Value" "MountingHole_3.2mm_M3" (at 0 4.2 0) (layer "F.Fab")
+\t\t\t(uuid "{uid2}") (effects (font (size 1 1) (thickness 0.15))))
+\t\t(property "Footprint" "" (at 0 0 0) (layer "F.Fab") (hide yes)
+\t\t\t(uuid "{uid3}") (effects (font (size 1.27 1.27) (thickness 0.15))))
+\t\t(property "Datasheet" "" (at 0 0 0) (layer "F.Fab") (hide yes)
+\t\t\t(uuid "{uid4}") (effects (font (size 1.27 1.27) (thickness 0.15))))
+\t\t(property "Description" "Mounting Hole 3.2mm, no annular, M3"
+\t\t\t(at 0 0 0) (layer "F.Fab") (hide yes) (uuid "{uid5}")
+\t\t\t(effects (font (size 1.27 1.27) (thickness 0.15))))
+\t\t(path "/{symbol}") (sheetname "/") (sheetfile "fakir.kicad_sch")
+\t\t(attr exclude_from_pos_files exclude_from_bom)
+\t\t(fp_circle (center 0 0) (end 3.2 0)
+\t\t\t(stroke (width 0.15) (type solid)) (fill no) (layer "Cmts.User")
+\t\t\t(uuid "{uid6}"))
+\t\t(fp_circle (center 0 0) (end 3.45 0)
+\t\t\t(stroke (width 0.05) (type solid)) (fill no) (layer "F.CrtYd")
+\t\t\t(uuid "{uid7}"))
+\t\t(pad "" np_thru_hole circle (at 0 0) (size 3.2 3.2) (drill 3.2)
+\t\t\t(layers "*.Cu" "*.Mask") (uuid "{uid8}"))
+\t)
+"""
+
+
+def mounts(cx, cy, side):
+    # one in each corner, halfway across the margin
+    inset = side / 2 - MARGIN / 2
+    return [("H1", cx - inset, cy - inset), ("H2", cx + inset, cy - inset),
+            ("H3", cx + inset, cy + inset), ("H4", cx - inset, cy + inset)]
+
+
 def uid(*parts):
     return str(uuid.uuid5(NS, NAME + "|" + "|".join(parts)))
 
@@ -122,6 +159,10 @@ if __name__ == "__main__":
                            symbol=uid("sym", ref), ref=ref, x=x, y=y,
                            value=value, drill=DRILL, pad=PAD,
                            ring=PAD / 2 + 0.25)
+    for ref, x, y in mounts(cx, cy, side):
+        ids = {"uid%d" % i: uid("mount", ref, str(i)) for i in range(1, 9)}
+        out += MOUNT.format(uid=uid("mount", ref), symbol=uid("mountsym", ref),
+                            ref=ref, x=x, y=y, **ids)
     out += "\t(embedded_fonts no)\n)\n"
     open("fakir.kicad_pcb", "w").write(out)
 
