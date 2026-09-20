@@ -7,3 +7,8 @@ pcb:
   thickness: 1.6
   note_top: "Only the pogo pins on this side"
   note_bottom: "Business logic goes on this side"
+
+holder:
+  thickness: 10.0
+  # printers close holes up a little; this is added to the bore
+  print_hole_allowance: 0.10
