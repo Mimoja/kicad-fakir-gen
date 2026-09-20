@@ -16,6 +16,7 @@ thick = cfg["holder"]["thickness"]
 
 holes = [(x - cx, -(y - cy)) for _, x, y, _ in tps]
 holder = (cq.Workplane("XY").box(x2 - x1, y2 - y1, thick, centered=(1, 1, 0))
+          .edges("|Z").fillet(3.0)
           .faces(">Z").workplane().pushPoints(holes).hole(bore))
 cq.exporters.export(holder, "holder.step")
 cq.exporters.export(holder, "holder.stl", tolerance=0.01)

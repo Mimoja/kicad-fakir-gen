@@ -9,6 +9,7 @@ NS = uuid.UUID("6f2b1c40-9a1e-5d3a-8c77-2f1d5a6b3e90")
 NAME = "fakir"
 
 MARGIN = 7.0
+RADIUS = 3.0
 
 HEAD = """(kicad_pcb
 \t(version 20260206)
@@ -35,6 +36,10 @@ HEAD = """(kicad_pcb
 
 NOTE = """\t(gr_text "{text}" (at {x} {y} 0) (layer "{layer}") (uuid "{uid}")
 \t\t(effects (font (size 1.2 1.2) (thickness 0.18)){mirror}))
+"""
+
+ARC = """\t(gr_arc (start {} {}) (mid {} {}) (end {} {})
+\t\t(stroke (width {}) (type solid)) (layer "{}") (uuid "{}"))
 """
 
 LINE = """\t(gr_line (start {} {}) (end {} {})
@@ -77,12 +82,13 @@ def uid(*parts):
     return str(uuid.uuid5(NS, NAME + "|" + "|".join(parts)))
 
 
-def rect(x1, y1, x2, y2, layer, width):
-    corners = [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+def edges(segments, layer, width):
     out = ""
-    for (ax, ay), (bx, by) in zip(corners, corners[1:] + corners[:1]):
-        out += LINE.format(ax, ay, bx, by, width, layer,
-                           uid("line", layer, str(ax), str(ay)))
+    for index, (kind, points) in enumerate(segments):
+        flat = [v for point in points for v in point]
+        template = LINE if kind == "line" else ARC
+        out += template.format(*flat, width, layer,
+                               uid(layer, kind, str(index)))
     return out
 
 
@@ -92,11 +98,17 @@ if __name__ == "__main__":
     TPS = dump.test_points(b, cfg["ref_pattern"], cfg["test_point_side"])
     x1, y1, x2, y2 = dump.outline(b)
     out = HEAD.format(thickness=cfg["pcb"]["thickness"])
-    out += rect(x1 - MARGIN, y1 - MARGIN, x2 + MARGIN, y2 + MARGIN,
-                "Edge.Cuts", 0.1)
-    out += rect(x1, y1, x2, y2, "F.SilkS", 0.12)
+    # a square with rounded corners, as big as the board's longer side
+    side = max(x2 - x1, y2 - y1) + 2 * MARGIN
+    cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+    out += edges(dump.rect_segments(cx - side / 2, cy - side / 2,
+                                    cx + side / 2, cy + side / 2, RADIUS),
+                 "Edge.Cuts", 0.1)
+    # the board's real outline on both silkscreens
+    out += edges(dump.segments(b), "F.SilkS", 0.12)
+    out += edges(dump.segments(b), "B.SilkS", 0.12)
     # say which side is which, in the margin above the board
-    cx, ny = (x1 + x2) / 2, y2 + MARGIN / 2
+    ny = cy + side / 2 - MARGIN / 2
     out += NOTE.format(text=cfg["pcb"]["note_top"], x=cx, y=ny,
                        layer="F.SilkS", uid=uid("note", "top"), mirror="")
     out += NOTE.format(text=cfg["pcb"]["note_bottom"], x=cx, y=ny,
