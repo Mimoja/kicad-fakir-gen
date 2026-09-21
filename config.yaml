@@ -12,3 +12,5 @@ holder:
   thickness: 10.0
   # printers close holes up a little; this is added to the bore
   print_hole_allowance: 0.10
+  # Add threaded inserts or screw directly into the plastic
+  threaded_inserts: true

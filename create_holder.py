@@ -16,6 +16,7 @@ INSERT_BORE = 4.0
 INSERT_DEPTH = 6.0
 INSERT_FLOOR = 3.0
 PASSAGE = 3.4
+TAP = 2.5
 BOSS_HEIGHT = INSERT_DEPTH + INSERT_FLOOR
 
 # positions come from the fixture PCB, so the holder and the board cannot
@@ -49,7 +50,11 @@ bosses = cq.Workplane("XY").pushPoints(screws).circle(BOSS / 2).extrude(
 holder = (plate.union(pillars).union(bosses)
           .faces(">Z").workplane().pushPoints(pins).hole(bore)
           .copyWorkplane(cq.Workplane("XY", origin=(0, 0, BOSS_HEIGHT)))
-          .pushPoints(screws).cboreHole(PASSAGE, INSERT_BORE, INSERT_DEPTH))
+          .pushPoints(screws))
+if cfg["holder"]["threaded_inserts"]:
+    holder = holder.cboreHole(PASSAGE, INSERT_BORE, INSERT_DEPTH)
+else:
+    holder = holder.hole(TAP)
 print("board sits at %.2f mm, pillars reach %.2f mm"
       % (board_height, guide_height))
 cq.exporters.export(holder, "holder.step")
