@@ -11,6 +11,7 @@ PCB = 1.6
 GUIDE_WALL = 1.1
 BOSS = 7.0
 BOSS_HEIGHT = 9.0
+TAP = 2.5          # M3 cuts its own thread into this
 
 # positions come from the fixture PCB, so the holder and the board cannot
 # disagree about where a probe is
@@ -41,7 +42,9 @@ pillars = (cq.Workplane("XY").placeSketch(
 bosses = cq.Workplane("XY").pushPoints(screws).circle(BOSS / 2).extrude(
     BOSS_HEIGHT)
 holder = (plate.union(pillars).union(bosses)
-          .faces(">Z").workplane().pushPoints(pins).hole(bore))
+          .faces(">Z").workplane().pushPoints(pins).hole(bore)
+          .copyWorkplane(cq.Workplane("XY", origin=(0, 0, BOSS_HEIGHT)))
+          .pushPoints(screws).hole(TAP))
 print("board sits at %.2f mm, pillars reach %.2f mm"
       % (board_height, guide_height))
 cq.exporters.export(holder, "holder.step")
