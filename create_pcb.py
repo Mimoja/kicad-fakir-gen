@@ -8,7 +8,6 @@ import dump
 NS = uuid.UUID("6f2b1c40-9a1e-5d3a-8c77-2f1d5a6b3e90")
 NAME = "fakir"
 
-MARGIN = 7.0
 RADIUS = 3.0
 
 HEAD = """(kicad_pcb
@@ -108,9 +107,9 @@ MOUNT = """\t(footprint "MountingHole:MountingHole_3.2mm_M3"
 """
 
 
-def mounts(cx, cy, side):
+def mounts(cx, cy, side, margin):
     # one in each corner, halfway across the margin
-    inset = side / 2 - MARGIN / 2
+    inset = side / 2 - margin / 2
     return [("H1", cx - inset, cy - inset), ("H2", cx + inset, cy - inset),
             ("H3", cx + inset, cy + inset), ("H4", cx - inset, cy + inset)]
 
@@ -134,9 +133,10 @@ if __name__ == "__main__":
     b = dump.board()
     TPS = dump.test_points(b, cfg["ref_pattern"], cfg["test_point_side"])
     x1, y1, x2, y2 = dump.outline(b)
+    margin = cfg["pcb"]["margin"]
     out = HEAD.format(thickness=cfg["pcb"]["thickness"])
     # a square with rounded corners, as big as the board's longer side
-    side = max(x2 - x1, y2 - y1) + 2 * MARGIN
+    side = max(x2 - x1, y2 - y1) + 2 * margin
     cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
     out += edges(dump.rect_segments(cx - side / 2, cy - side / 2,
                                     cx + side / 2, cy + side / 2, RADIUS),
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     out += edges(dump.segments(b), "F.SilkS", 0.12)
     out += edges(dump.segments(b), "B.SilkS", 0.12)
     # say which side is which, in the margin above the board
-    ny = cy + side / 2 - MARGIN / 2
+    ny = cy + side / 2 - margin / 2
     out += NOTE.format(text=cfg["pcb"]["note_top"], x=cx, y=ny,
                        layer="F.SilkS", uid=uid("note", "top"), mirror="")
     out += NOTE.format(text=cfg["pcb"]["note_bottom"], x=cx, y=ny,
@@ -159,7 +159,7 @@ if __name__ == "__main__":
                            symbol=uid("sym", ref), ref=ref, x=x, y=y,
                            value=value, drill=DRILL, pad=PAD,
                            ring=PAD / 2 + 0.25)
-    for ref, x, y in mounts(cx, cy, side):
+    for ref, x, y in mounts(cx, cy, side, margin):
         ids = {"uid%d" % i: uid("mount", ref, str(i)) for i in range(1, 9)}
         out += MOUNT.format(uid=uid("mount", ref), symbol=uid("mountsym", ref),
                             ref=ref, x=x, y=y, **ids)

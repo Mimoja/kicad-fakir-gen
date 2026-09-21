@@ -5,12 +5,20 @@ ref_pattern: "^TP\\d+$"
 
 pcb:
   thickness: 1.6
+  # How far the fakir board stands out past the target board, on each side
+  margin: 7.0
   note_top: "Only the pogo pins on this side"
   note_bottom: "Business logic goes on this side"
 
 holder:
-  thickness: 10.0
   # printers close holes up a little; this is added to the bore
   print_hole_allowance: 0.10
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
+  # The plate under the board; thicker if it flexes
+  base_thickness: 3.0
+  # Room around the board's outline, and plate past it
+  board_clearance: 0.40
+  body_border: 2.5
+  feet: true
+  foot_height: 8.0

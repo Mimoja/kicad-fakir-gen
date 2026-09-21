@@ -1,7 +1,7 @@
 import json
 
 import dump
-from create_pcb import MARGIN, NAME, mounts, uid
+from create_pcb import NAME, mounts, uid
 
 HEAD = """(kicad_sch
 \t(version 20260306)
@@ -126,7 +126,7 @@ for index, (ref, _, _, value) in enumerate(TPS):
                          ref=ref, value=value, uid=uid("sym", ref),
                          pin=uid("pin", ref), name=NAME, root=root)
 row = 30.48 + (len(TPS) // 6 + 1) * 25.4
-for index, (ref, _, _) in enumerate(mounts(0, 0, 2 * MARGIN)):
+for index, (ref, _, _) in enumerate(mounts(0, 0, 0, 0)):
     x = 30.48 + index * 25.4
     out += MOUNT.format(x=x, y=row, rx=x + 2.54, ry=row - 2.54, ref=ref,
                         uid=uid("mountsym", ref), name=NAME, root=root)
