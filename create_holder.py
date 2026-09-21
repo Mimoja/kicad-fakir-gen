@@ -2,32 +2,55 @@ import cadquery as cq
 
 import dump
 
-BARREL = 1.02      # P75 pogo pin
+# P75 pogo pin
+BARREL = 1.02
+LENGTH = 16.6
+STROKE = 2.65
 
-# positions come from the fixture PCB, so the block and the board cannot
+PCB = 1.6
+GUIDE_WALL = 1.1
+BOSS = 7.0
+BOSS_HEIGHT = 9.0
+
+# positions come from the fixture PCB, so the holder and the board cannot
 # disagree about where a probe is
 cfg = dump.config()
 pcb = dump.parse(open("fakir.kicad_pcb").read())
 tps = dump.test_points(pcb, cfg["ref_pattern"], "B.Cu")
+mounts = dump.test_points(pcb, r"^H\d+$", "F.Cu")
 x1, y1, x2, y2 = dump.outline(pcb)
 cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
 bore = BARREL + cfg["holder"]["print_hole_allowance"]
-thick = cfg["holder"]["thickness"]
+base = cfg["holder"]["thickness"]
 
-holes = [(x - cx, -(y - cy)) for _, x, y, _ in tps]
-holder = (cq.Workplane("XY").box(x2 - x1, y2 - y1, thick, centered=(1, 1, 0))
-          .edges("|Z").fillet(3.0)
-          .faces(">Z").workplane().pushPoints(holes).hole(bore))
+# The probe stands LENGTH - PCB above the fixture PCB.  The board rests
+# where it has pushed the plungers in by 2/3 of their stroke; the pillars
+# hold 2/3 of what stands out.  Nothing else reaches up to the board.
+stand = LENGTH - PCB
+board_height = round(stand - STROKE * 2 / 3, 2)
+guide_height = round(stand * 2 / 3, 2)
+
+pins = [(x - cx, -(y - cy)) for _, x, y, _ in tps]
+screws = [(x - cx, -(y - cy)) for _, x, y, _ in mounts]
+
+plate = (cq.Workplane("XY").box(x2 - x1, y2 - y1, base, centered=(1, 1, 0))
+         .edges("|Z").fillet(3.0))
+pillars = (cq.Workplane("XY").placeSketch(
+    cq.Sketch().push(pins).circle(bore / 2 + GUIDE_WALL))
+    .extrude(guide_height))
+bosses = cq.Workplane("XY").pushPoints(screws).circle(BOSS / 2).extrude(
+    BOSS_HEIGHT)
+holder = (plate.union(pillars).union(bosses)
+          .faces(">Z").workplane().pushPoints(pins).hole(bore))
+print("board sits at %.2f mm, pillars reach %.2f mm"
+      % (board_height, guide_height))
 cq.exporters.export(holder, "holder.step")
 cq.exporters.export(holder, "holder.stl", tolerance=0.01)
 
 # feet: the probe tails stand proud under the PCB, so it cannot lie flat.
 # Spacers under the corner screws, M3 clearance through them.
-mounts = dump.test_points(pcb, r"^H\d+$", "F.Cu")
-feet = (cq.Workplane("XY")
-        .pushPoints([(x - cx, -(y - cy)) for _, x, y, _ in mounts])
-        .circle(3.5).extrude(8.0)
+feet = (cq.Workplane("XY").pushPoints(screws).circle(3.5).extrude(8.0)
         .faces("<Z").workplane().pushPoints(
-            [(x - cx, y - cy) for _, x, y, _ in mounts]).hole(3.4))
+            [(x, -y) for x, y in screws]).hole(3.4))
 cq.exporters.export(feet, "feet.step")
 cq.exporters.export(feet, "feet.stl", tolerance=0.01)
