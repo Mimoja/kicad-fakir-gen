@@ -1,7 +1,8 @@
 import json
 
 import dump
-from create_pcb import NAME, mounts, uid
+from create_pcb import mounts
+from ids import NAME, uid
 
 HEAD = """(kicad_sch
 \t(version 20260306)
@@ -102,13 +103,13 @@ SYMBOL = """\t(symbol
 \t\t\t(effects (font (size 1.27 1.27)) (justify left)))
 \t\t(property "Value" "{value}" (at {rx} {vy} 0)
 \t\t\t(effects (font (size 1.27 1.27)) (justify left)))
-\t\t(property "Footprint" "fakir:PogoPin_D1.2mm" (at {x} {y} 0)
+\t\t(property "Footprint" "fakir:PogoPin_{pin}" (at {x} {y} 0)
 \t\t\t(hide yes) (effects (font (size 1.27 1.27))))
 \t\t(property "Datasheet" "" (at {x} {y} 0) (hide yes)
 \t\t\t(effects (font (size 1.27 1.27))))
 \t\t(property "Description" "test point" (at {x} {y} 0) (hide yes)
 \t\t\t(effects (font (size 1.27 1.27))))
-\t\t(pin "1" (uuid "{pin}"))
+\t\t(pin "1" (uuid "{pinid}"))
 \t\t(instances (project "{name}" (path "/{root}"
 \t\t\t(reference "{ref}") (unit 1))))
 \t)
@@ -124,7 +125,8 @@ for index, (ref, _, _, value) in enumerate(TPS):
     y = 30.48 + (index // 6) * 25.4
     out += SYMBOL.format(x=x, y=y, rx=x + 2.54, ry=y - 6.35, vy=y - 3.81,
                          ref=ref, value=value, uid=uid("sym", ref),
-                         pin=uid("pin", ref), name=NAME, root=root)
+                         pin=cfg["pogo_pin"], name=NAME, root=root,
+                         pinid=uid("pin", ref))
 row = 30.48 + (len(TPS) // 6 + 1) * 25.4
 for index, (ref, _, _) in enumerate(mounts(0, 0, 0, 0)):
     x = 30.48 + index * 25.4
