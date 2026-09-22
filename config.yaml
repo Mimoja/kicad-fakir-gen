@@ -1,3 +1,6 @@
+# Which pogo pin: P50, P75, P100, P125 or P160
+pogo_pin: "P75"
+
 # Which side of the board the pogo pins land on
 test_point_side: "B.Cu"
 # Which footprints count as test points

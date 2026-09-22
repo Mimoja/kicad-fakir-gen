@@ -1,11 +1,7 @@
 import cadquery as cq
 
 import dump
-
-# P75 pogo pin
-BARREL = 1.02
-LENGTH = 16.6
-STROKE = 2.65
+import pogo
 
 PCB = 1.6
 GUIDE_WALL = 1.1
@@ -23,12 +19,13 @@ BOSS_HEIGHT = INSERT_DEPTH + INSERT_FLOOR
 # disagree about where a probe is
 cfg = dump.config()
 holder_cfg = cfg["holder"]
+pin = pogo.get(cfg["pogo_pin"])
 pcb = dump.parse(open("fakir.kicad_pcb").read())
 tps = dump.test_points(pcb, cfg["ref_pattern"], "B.Cu")
 mounts = dump.test_points(pcb, r"^H\d+$", "F.Cu")
 x1, y1, x2, y2 = dump.outline(pcb)
 cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
-bore = BARREL + holder_cfg["print_hole_allowance"]
+bore = pin["barrel"] + holder_cfg["print_hole_allowance"]
 base = holder_cfg["base_thickness"]
 
 # the board under test decides how big the plate is: its bounding box,
@@ -37,11 +34,11 @@ bx1, by1, bx2, by2 = dump.outline(dump.board())
 grow = holder_cfg["board_clearance"] + 2 * holder_cfg["body_border"]
 width, depth = bx2 - bx1 + grow, by2 - by1 + grow
 
-# The probe stands LENGTH - PCB above the fixture PCB.  The board rests
+# The probe stands length - PCB above the fixture PCB.  The board rests
 # where it has pushed the plungers in by 2/3 of their stroke; the pillars
 # hold 2/3 of what stands out.  Nothing else reaches up to the board.
-stand = LENGTH - PCB
-board_height = round(stand - STROKE * 2 / 3, 2)
+stand = pin["length"] - PCB
+board_height = round(stand - pin["stroke"] * 2 / 3, 2)
 guide_height = round(stand * 2 / 3, 2)
 
 pins = [(x - cx, -(y - cy)) for _, x, y, _ in tps]
