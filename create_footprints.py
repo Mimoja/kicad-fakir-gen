@@ -1,11 +1,11 @@
 import os
 
+import dump
 import pogo
 from create_pcb import uid
 
-# hole = barrel + 0.15 mm, snapped to the 0.05 mm the fabs drill in;
+# hole = barrel + clearance, snapped to the 0.05 mm the fabs drill in;
 # the pad ring is what is left for solder
-CLEARANCE = 0.15
 GRID = 0.05
 RING = 0.7
 
@@ -44,7 +44,8 @@ MOD = """(footprint "PogoPin_{key}"
 
 
 def drill(pin):
-    return round(round((pin["barrel"] + CLEARANCE) / GRID) * GRID, 2)
+    extra = dump.config()["pcb"]["drill_hole_extra"]
+    return round(round((pin["barrel"] + extra) / GRID) * GRID, 2)
 
 
 def footprint(key):
