@@ -1,0 +1,12 @@
+# The environment is rebuilt by `uv sync`; everything else here belongs in
+# version control, including fakir_tools/ -- that is what makes this folder work
+# on a machine without fakir installed.
+.venv/
+__pycache__/
+*.py[cod]
+
+# KiCad scratch
+*.kicad_prl
+*-backups/
+fp-info-cache
+~*.lck

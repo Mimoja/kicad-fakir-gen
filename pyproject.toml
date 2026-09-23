@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kicad-fakir-board-generator"
+version = "1.0.0"
+description = "KiCad Fakir-Board Generator: builds a pogo-pin test fixture -- PCB, schematic and printed holder -- from a KiCad board's test points"
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["kicad", "pcb", "test-fixture", "pogo-pin", "bed-of-nails"]
+classifiers = [
+    "Intended Audience :: Manufacturing",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+]
+dependencies = ["pyyaml>=6"]
+
+[project.urls]
+Homepage = "https://github.com/Mimoja/kicad-fakir-gen"
+Issues = "https://github.com/Mimoja/kicad-fakir-gen/issues"
+
+[project.optional-dependencies]
+dev = ["pyflakes"]
+
+[tool.setuptools]
+packages = ["fakir"]

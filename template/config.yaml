@@ -1,0 +1,61 @@
+# fakir fixture configuration for @@SOURCE_NAME@@.
+
+# Which pogo pin to use for generating
+#
+# NAME   BARREL LENGTH STROKE
+# P50    0.68   16.4   2.65
+# P75    1.02   16.6   2.65
+# P100   1.36   33.4   6.35
+# P125   1.67   33.4   6.35
+# P160   2.03   44.5   4.00
+pogo_pin: "P75"
+
+# Which side's test points to probe, and what counts as a test point.
+test_point_side: "B.Cu"
+ref_pattern: "^TP\\d+$"
+
+# Config for the PCB generation
+pcb:
+  thickness: 1.6
+  # How far the fakir board stands out past the target board, on each side
+  margin: 7.0
+
+  # Clearance around the probe barrel to insert it into the PCB
+  drill_hole_extra: 0.15
+
+  note_top: "Only the pogo pins on this side"
+  note_bottom: "Business logic goes on this side"
+
+# 3d printed holder
+holder:
+
+  # The pogo pins would be friction fit in an ideal world,
+  # however this is needed for 3d printing
+  print_hole_allowance: 0.10
+
+  # Add threaded inserts or screw directly into the plastic
+  threaded_inserts: true
+
+  # Increase if the holder flexes
+  base_thickness: 3.0
+
+  # Clearance around the target board 
+  # *not* influenced by 3D printer settings above
+  board_clearance: 0.40
+
+  body_border: 2.5
+  feet: true
+  foot_height: 8.0
+
+# output options
+render:
+  # What generate.sh --3d writes
+  # Options:
+  # - step
+  # - stl
+  # - 3mf
+  # - amf
+  holder_format: step,stl
+
+  # Where the 3D models KiCad shows the fixture with are written
+  model_dir: "3dshapes"
