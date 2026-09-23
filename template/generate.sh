@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ./generate.sh --pcb                      PCB and schematic
+# ./generate.sh --pcb [--full|--bottom]    PCB and schematic
 # ./generate.sh --3d                       printed parts, 3D models, picture
 # Both flags together run one after the other.
 set -euo pipefail

@@ -34,6 +34,7 @@ DEFAULTS: Dict[str, Any] = {
     "render": {
         "holder_format": "step,stl",
         "model_dir": "3dshapes",
+        "print_dir": "PrintFiles",
     },
 }
 

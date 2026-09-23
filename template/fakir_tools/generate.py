@@ -19,13 +19,15 @@ except ImportError:
 
 def main(argv) -> int:
     modes = [flag for flag in ("--pcb", "--3d") if flag in argv]
-    if not modes or len(modes) != len(argv):
-        print("usage: generate.sh --pcb and/or --3d", file=sys.stderr)
+    rest = [arg for arg in argv if arg not in modes]
+    if not modes:
+        print("usage: generate.sh --pcb [--full|--bottom] and/or --3d",
+              file=sys.stderr)
         return 2
     try:
         config = load(str(ROOT / "config.yaml"))
         if "--pcb" in modes:
-            status = regenerate_pcb(config, ROOT)
+            status = regenerate_pcb(config, ROOT, argv=rest)
             if status or "--3d" not in modes:
                 return status
         written = render(config, str(ROOT))

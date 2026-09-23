@@ -56,11 +56,16 @@ def render(config, folder: str) -> List[str]:
     _step("building the parts")
     printed = parts.printable(spec)
     written = []
+    prints = os.path.join(folder, config.get("render.print_dir"))
     for key in holder_formats(config):
         for part, solid in printed.items():
-            target = os.path.join(folder, "%s-%s.%s" % (name, part, key))
+            target = os.path.join(prints, "%s-%s.%s" % (name, part, key))
             _step("writing", target)
             written.append(parts.export(solid, target))
+
+    target = os.path.join(prints, "plate.3mf")
+    _step("writing every part on one bed to", target)
+    written.append(parts.export(parts.prepare_for_printing(printed), target))
 
     models = os.path.join(folder, "%s.%s"
                           % (name, config.get("render.model_dir")))

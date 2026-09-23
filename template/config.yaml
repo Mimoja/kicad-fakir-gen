@@ -72,3 +72,6 @@ render:
 
   # Where the 3D models KiCad shows the fixture with are written
   model_dir: "3dshapes"
+
+  # Where the files for the slicer go
+  print_dir: "PrintFiles"

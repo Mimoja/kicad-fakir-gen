@@ -246,6 +246,30 @@ def printable(spec: BodySpec):
     return parts
 
 
+# The caps tip up and the key lies on its side: nothing needs supports.
+def prepare_for_printing(parts, gap=10.0):
+    def solids(name, turn=None):
+        for solid in parts[name].solids().vals():
+            yield solid.rotate((0, 0, 0), (1, 0, 0), turn) if turn else solid
+
+    laid = [("holder", None), ("lid", None), ("key", 90), ("caps", 180),
+            ("feet", None)]
+    # Shelf packing: left to right, a new row once a row is 200 mm wide.
+    placed, x, y, row_depth = [], 0.0, 0.0, 0.0
+    for part, turn in laid:
+        if part not in parts:
+            continue
+        for solid in solids(part, turn):
+            box = solid.BoundingBox()
+            if x and x + box.xlen > 200.0:
+                x, y, row_depth = 0.0, y + row_depth + gap, 0.0
+            placed.append(solid.translate(
+                cq.Vector(x - box.xmin, y - box.ymin, -box.zmin)))
+            x += box.xlen + gap
+            row_depth = max(row_depth, box.ylen)
+    return cq.Compound.makeCompound(placed)
+
+
 def probe_solid(probe):
     plunger_length = min(4.0, probe.stroke_mm + 1.0)
     barrel_length = max(1.0, probe.length_mm - plunger_length)
