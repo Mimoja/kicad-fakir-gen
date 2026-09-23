@@ -6,6 +6,11 @@ import cadquery as cq
 
 from .spec import BodySpec, HolderError
 
+# Colours for KiCad's 3D view: printed plastic, and the feet a shade apart.
+_PLASTIC = cq.Color(0.89, 0.82, 0.70)
+_LID = cq.Color(0.80, 0.80, 0.82)
+_FEET = cq.Color(0.45, 0.47, 0.50)
+
 # Chord error of the mesh formats, in mm.  CadQuery's default of 0.1 turns
 # a 1 mm probe bore into a hexagon.
 _MESH_TOLERANCE = 0.01
@@ -270,6 +275,25 @@ def prepare_for_printing(parts, gap=10.0):
     return cq.Compound.makeCompound(placed)
 
 
+# z = 0 is the top face of the fixture PCB; the caps sit on the board.
+def assembly(spec: BodySpec, parts) -> cq.Assembly:
+    stack = cq.Assembly(name="fixture")
+    stack.add(parts["holder"], name="holder", color=_PLASTIC)
+    if "lid" in parts:
+        board_top = spec.dut_height + spec.pcb_thickness
+        caps = _copies(build_cap(spec), spec.pressers())
+        stack.add(parts["lid"], name="lid", color=_LID,
+                  loc=cq.Location((0, 0, spec.lid_z)))
+        stack.add(caps, name="caps", color=_LID,
+                  loc=cq.Location((0, 0, board_top)))
+        stack.add(parts["key"], name="key", color=_LID)
+    if "feet" in parts:
+        drop = -(spec.pcb_thickness + spec.foot_height)
+        stack.add(parts["feet"], name="feet", color=_FEET,
+                  loc=cq.Location((0, 0, drop)))
+    return stack
+
+
 def probe_solid(probe):
     plunger_length = min(4.0, probe.stroke_mm + 1.0)
     barrel_length = max(1.0, probe.length_mm - plunger_length)
@@ -284,7 +308,10 @@ def probe_solid(probe):
 
 def export(part, path: str) -> str:
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    cq.exporters.export(part, path, tolerance=_MESH_TOLERANCE)
+    if isinstance(part, cq.Assembly):
+        part.export(path)
+    else:
+        cq.exporters.export(part, path, tolerance=_MESH_TOLERANCE)
     if not os.path.exists(path) or os.path.getsize(path) == 0:
         raise HolderError("CadQuery wrote nothing to %s" % path)
     return path

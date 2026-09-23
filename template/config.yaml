@@ -75,3 +75,6 @@ render:
 
   # Where the files for the slicer go
   print_dir: "PrintFiles"
+
+  stackup: true
+  stackup_size: [1000, 1000]  # in pixels rendered

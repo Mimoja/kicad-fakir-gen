@@ -171,7 +171,7 @@ if [ "$FAKIR_MODULE_SOURCE" = local ]; then
     # tests/test_install.py fails if this list and fakir/ diverge.
     for f in __init__.py config.py sexpr.py model.py pogo.py screws.py stock.py \
              geometry.py extract.py project.py emit.py workflow.py spec.py \
-             parts.py body.py; do
+             parts.py body.py kicadcli.py; do
         [ -f "$LIB/$f" ] || die "missing library module: $f"
         cp "$LIB/$f" "$DEST/fakir_tools/_fakir/$f"
     done
@@ -248,5 +248,5 @@ done. next:
   cd $(python3 -c "import os,sys;print(os.path.relpath(sys.argv[1]))" "$DEST")
   \$EDITOR config.yaml          # the probe, and everything else
   ./generate.sh --pcb          # PCB + schematic
-  ./generate.sh --3d           # the printed parts
+  ./generate.sh --3d           # the printed parts and the stackup picture
 EOF

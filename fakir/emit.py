@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from .geometry import (Outline, clearance_warnings, make_outline,
                        rounded_rect_edges)
-from .model import FixtureConfig, TestPoint
+from .model import ASSEMBLY_PARTS, DUT_MODEL, FixtureConfig, TestPoint
 from .project import GENERATED_MARKER
 from .sexpr import Node, Sym, dumps, find, loads, num
 
@@ -27,7 +27,7 @@ _YES = Sym("yes")
 _NO = Sym("no")
 
 _TAGS = "pogo test point fixture"
-
+_ASSEMBLY_DESCR = "Printed holder and the board under test, 3D models only"
 
 # Stock symbols, embedded so the schematic opens without the libraries.
 _TESTPOINT_SYMBOL = r"""
@@ -226,6 +226,58 @@ def _probe_model(cfg: FixtureConfig) -> List[Node]:
 
 def _model_path(cfg: FixtureConfig, filename: str) -> str:
     return "${KIPRJMOD}/%s.%s/%s" % (cfg.name, cfg.model_dir, filename)
+
+
+def _assembly(cfg: FixtureConfig, uid, ref: str) -> List[Node]:
+    hidden = cfg.top_layer.replace(".Cu", ".Fab")
+    nodes: List[Node] = [
+        _property("Reference", ref, 0, 0, hidden, uid("ref"), hide=True),
+        _property("Value", cfg.assembly_name, 0, 0, hidden, uid("value"),
+                  hide=True),
+        ["attr", Sym("board_only"), Sym("exclude_from_pos_files"),
+         Sym("exclude_from_bom")],
+    ]
+    models = [("%s.step" % part, 0.0) for part in ASSEMBLY_PARTS]
+    models.append((DUT_MODEL, cfg.board_height))
+    for filename, z in models:
+        nodes.append([
+            "model", _model_path(cfg, filename),
+            ["offset", ["xyz", num(0), num(0), num(z)]],
+            ["scale", ["xyz", num(1), num(1), num(1)]],
+            ["rotate", ["xyz", num(0), num(0), num(0)]],
+        ])
+    nodes.append(["embedded_fonts", _NO])
+    return nodes
+
+
+def assembly_library(cfg: FixtureConfig) -> str:
+    def uid(tag: str) -> str:
+        return cfg.uid("lib", cfg.assembly_name, tag)
+
+    node: Node = [
+        "footprint", cfg.assembly_name,
+        ["version", Sym(PCB_VERSION)],
+        ["generator", GENERATOR],
+        ["generator_version", GENERATOR_VERSION],
+        ["layer", cfg.top_layer],
+        ["descr", _ASSEMBLY_DESCR],
+    ]
+    return dumps(node + _assembly(cfg, uid, "REF**")) + "\n"
+
+
+def _board_assembly(cfg: FixtureConfig, outline: Outline) -> Node:
+    def uid(tag: str) -> str:
+        return cfg.uid("assembly", tag)
+
+    x, y = outline.centre
+    node: Node = [
+        "footprint", cfg.assembly_id,
+        ["layer", cfg.top_layer],
+        ["uuid", uid("self")],
+        ["at", num(x), num(y), num(0)],
+        ["descr", _ASSEMBLY_DESCR],
+    ]
+    return node + _assembly(cfg, uid, "ASM1")
 
 
 def footprint_library(cfg: FixtureConfig) -> str:
@@ -443,6 +495,7 @@ def board(cfg: FixtureConfig, placed: Placed, outline: Outline,
         node.append(_board_mount(cfg, ref, x, y))
     node += _dut_outline(cfg)
     node += _holder_outline(cfg, outline, mounts)
+    node.append(_board_assembly(cfg, outline))
     node += _board_notes(cfg, outline)
     node.append(["embedded_fonts", _NO])
     return dumps(node) + "\n"
@@ -594,7 +647,7 @@ def merge_board(existing: str, generated: str, cfg: FixtureConfig) -> str:
     if not isinstance(current, list) or str(current[0]) != "kicad_pcb":
         raise ValueError("not a KiCad board")
 
-    owned_libs = {cfg.footprint_id, cfg.mount_footprint_id}
+    owned_libs = {cfg.footprint_id, cfg.mount_footprint_id, cfg.assembly_id}
     note_uuid = cfg.uid("note")
 
     def is_ours(item: Node) -> bool:
@@ -637,6 +690,8 @@ def build(points: Sequence[TestPoint], cfg: FixtureConfig,
         "fp-lib-table": fp_lib_table(cfg),
         "%s.pretty/%s.kicad_mod" % (cfg.footprint_lib, cfg.footprint_name):
             footprint_library(cfg),
+        "%s.pretty/%s.kicad_mod" % (cfg.footprint_lib, cfg.assembly_name):
+            assembly_library(cfg),
     }
     warnings = clearance_warnings(placed, cfg, outline, mounts)
     return FixtureFiles(files, warnings, outline, placed, root_uuid)

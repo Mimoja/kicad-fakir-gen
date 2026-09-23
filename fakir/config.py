@@ -35,6 +35,8 @@ DEFAULTS: Dict[str, Any] = {
         "holder_format": "step,stl",
         "model_dir": "3dshapes",
         "print_dir": "PrintFiles",
+        "stackup": True,
+        "stackup_size": [1000, 1000],
     },
 }
 

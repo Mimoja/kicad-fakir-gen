@@ -277,6 +277,16 @@ class BodySpec:
     def key_width(self) -> float:
         return 4.0 * self.screw.nominal_mm + 2.0
 
+    @property
+    def stack_centre(self) -> float:
+        bottom = -self.pcb_thickness
+        if self.feet:
+            bottom -= self.foot_height
+        top = self.dut_height + self.pcb_thickness
+        if self.clamp:
+            top = self.hinge_axis[1] + self.hinge_diameter / 2.0
+        return (bottom + top) / 2.0
+
     def check(self) -> List[str]:
         out: List[str] = []
         if not self.pins:

@@ -9,6 +9,9 @@ from . import pogo, screws, stock
 
 CORNER_RADIUS_MM = 3.0
 
+ASSEMBLY_PARTS = ("holder", "lid", "caps", "key", "feet")
+DUT_MODEL = "board-under-test.step"
+
 DEFAULT_BOARD_NOTE_TOP = "Only the pogo pins on this side"
 DEFAULT_BOARD_NOTE_BOTTOM = "Business logic goes on this side"
 
@@ -48,8 +51,8 @@ class FixtureConfig:
     name: str = "fakir"
     side: str = "B.Cu"                       # side of the source board probed
     pogo_key: str = pogo.DEFAULT_KEY
-    screw_key: str = screws.DEFAULT_KEY
     drill_mm: Optional[float] = None         # None: the probe's own
+    screw_key: str = screws.DEFAULT_KEY
     board_note_top: str = DEFAULT_BOARD_NOTE_TOP
     board_note_bottom: str = DEFAULT_BOARD_NOTE_BOTTOM
     margin_mm: float = 7.0                   # fixture past the source board
@@ -96,6 +99,18 @@ class FixtureConfig:
     @property
     def footprint_id(self) -> str:
         return "%s:%s" % (self.footprint_lib, self.footprint_name)
+
+    @property
+    def assembly_name(self) -> str:
+        return "Assembly"
+
+    @property
+    def assembly_id(self) -> str:
+        return "%s:%s" % (self.footprint_lib, self.assembly_name)
+
+    @property
+    def board_height(self) -> float:
+        return self.pogo.board_height(self.thickness_mm)
 
     @property
     def stock_mount(self):
