@@ -42,6 +42,13 @@ holder:
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
 
+  # Should there be a lid?
+  clamp: true
+  clamp_tower_height: 15.0
+
+  # We domt want to touch the target board with m3 screws, so we render caps
+  presser_cap_height: 20.0
+
   # Increase if the holder flexes
   base_thickness: 3.0
 

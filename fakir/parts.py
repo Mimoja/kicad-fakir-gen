@@ -27,6 +27,17 @@ def _hull(circles, segments=()):
     return sketch.hull()
 
 
+# The "XZ" plane's normal points to -y, so _rod_y extrudes negative.
+def _rod_x(x, y, z, diameter, length):
+    return (cq.Workplane("YZ", origin=(x, 0, 0)).center(y, z)
+            .circle(diameter / 2.0).extrude(length))
+
+
+def _rod_y(x, y, z, diameter, length):
+    return (cq.Workplane("XZ", origin=(0, y, 0)).center(x, z)
+            .circle(diameter / 2.0).extrude(-length))
+
+
 def _plane(z):
     return cq.Workplane("XY", origin=(0, 0, z))
 
@@ -63,6 +74,11 @@ def build_solid(spec: BodySpec):
     holder = holder.union(
         cq.Workplane("XY").placeSketch(pillars).extrude(spec.guide_height))
 
+    if spec.outline_loop and spec.wall_top > spec.base_thickness:
+        holder = holder.union(_wall(spec, plate))
+    if spec.clamp:
+        holder = _add_clamp(spec, holder)
+
     # Probe bores, then the stack screws' holes down through each boss.
     holder = (holder.copyWorkplane(_plane(spec.guide_height))
               .pushPoints(spec.pins).hole(spec.bore))
@@ -70,9 +86,144 @@ def build_solid(spec: BodySpec):
                        .pushPoints(spec.screws), spec)
 
 
+def _wall(spec: BodySpec, plate):
+    loop = spec.outline_loop
+    if loop[0] == loop[-1]:
+        loop = loop[:-1]
+    height = spec.wall_top - spec.base_thickness
+
+    def prism(grow):
+        return (_plane(spec.base_thickness).polyline(loop).close()
+                .offset2D(grow, "arc").extrude(height))
+
+    # Clipped to the plate's outline, so an odd board cannot push it off.
+    return (prism(spec.border).cut(prism(spec.board_clearance / 2.0))
+            .intersect(cq.Workplane("XY").placeSketch(plate)
+                       .extrude(spec.wall_top)))
+
+
+def _add_clamp(spec: BodySpec, holder):
+    post_x, post_y = spec.post_size
+    axis_y, axis_z = spec.hinge_axis
+    ear = spec.hinge_ear
+
+    holder = holder.union(
+        cq.Workplane("XY").pushPoints(spec.hinge_posts())
+        .slot2D(post_x, post_y).extrude(spec.lid_z))
+    for x, y in spec.hinge_posts():
+        # The ear is the hull from the post's top face up to the barrel, so
+        # the neck tapers into it.
+        profile = _hull([(axis_y, axis_z, spec.hinge_diameter)],
+                        [((y - post_y / 2.0, spec.lid_z),
+                          (y + post_y / 2.0, spec.lid_z))])
+        holder = (holder
+                  .union(cq.Workplane("YZ", origin=(x - ear / 2.0, 0, 0))
+                         .placeSketch(profile).extrude(ear))
+                  .cut(_rod_x(x - ear / 2.0 - 1.0, axis_y, axis_z,
+                              spec.screw.tap_mm, ear + 2.0)))
+
+    return (holder
+            .union(_rod_y(0.0, spec.key_face, spec.key_pivot,
+                          spec.key_width * 0.6, spec.ring))
+            .cut(_rod_y(0.0, spec.key_face - 1.0, spec.key_pivot,
+                        spec.screw.tap_mm, spec.ring + 2.0)))
+
+
+def build_lid(spec: BodySpec):
+    if not spec.dut_size:
+        raise HolderError("no board size, so there is nothing to clamp")
+
+    width = spec.board_footprint[0] + 2.0 * spec.border
+    depth = spec.board_footprint[1] + 2.0 * spec.ring
+    thick = spec.lid_thickness
+    axis_y = spec.hinge_axis[0]
+    axis_z = thick + spec.hinge_diameter / 2.0                   # lid-local
+
+    lid = (cq.Workplane("XY")
+           .placeSketch(_rounded_rect(width, depth, spec.corner_radius))
+           .extrude(thick))
+    rib = spec.lid_rib
+    if width > 2.0 * rib + 6.0 and depth > 2.0 * rib + 6.0:
+        window = _rounded_rect(width - 2.0 * rib, depth - 2.0 * rib,
+                               spec.corner_radius)
+        lid = lid.faces(">Z").workplane().placeSketch(window).cutThruAll()
+
+    # Tap-sized through holes: the presser screws cut their own thread, so
+    # each one stays at whatever height it is wound to.
+    lid = (lid.faces(">Z").workplane().pushPoints(spec.presser_holes())
+           .hole(spec.screw.tap_mm))
+
+    # Access holes over the stack screws the lid covers.
+    margin = spec.insert_drill / 2.0 + 1.5
+    covered = [(x, y) for x, y in spec.screws
+               if abs(x) <= width / 2.0 - margin
+               and abs(y) <= depth / 2.0 - margin]
+    if covered:
+        lid = (lid.faces(">Z").workplane().pushPoints(covered)
+               .hole(spec.insert_drill + 1.5))
+
+    # Notches for the ears, no deeper than the ring they stand in.
+    notch_w, notch_d = spec.hinge_notch
+    ears = [(x, axis_y - notch_d / 2.0 + 0.5) for x in spec.hinge_ears()]
+    if ears:
+        lid = (lid.faces(">Z").workplane().pushPoints(ears)
+               .rect(notch_w, notch_d + 1.0).cutThruAll())
+
+    # One barrel between the ears, on a web up from the back edge.
+    span = spec.knuckle_span()
+    if span:
+        left, right = span
+        lid = (lid
+               .union(_rod_x(left, axis_y, axis_z, spec.hinge_diameter,
+                             right - left))
+               .union(cq.Workplane("XY")
+                      .center((left + right) / 2.0, axis_y - spec.ring / 4.0)
+                      .rect(right - left, spec.ring / 2.0).extrude(axis_z))
+               .cut(_rod_x(left - 1.0, axis_y, axis_z, spec.screw_hole,
+                           right - left + 2.0)))
+
+    # The key's screw goes into the front face.
+    return lid.cut(_rod_y(0.0, -depth / 2.0 - 1.0, thick / 2.0,
+                          _screw_bore(spec), spec.insert_depth + 1.0))
+
+
+def build_cap(spec: BodySpec):
+    shank = spec.cap_height - spec.cap_taper
+    return (cq.Workplane("XY").circle(spec.cap_tip / 2.0)
+            .workplane(offset=spec.cap_taper).circle(spec.cap_diameter / 2.0)
+            .loft()
+            .faces(">Z").workplane().circle(spec.cap_diameter / 2.0)
+            .extrude(shank)
+            .faces(">Z").workplane().hole(spec.screw.tap_mm, shank - 0.5))
+
+
 def _copies(part, points):
     return (cq.Workplane("XY").pushPoints(points)
             .eachpoint(lambda loc: part.val().located(loc)).combine())
+
+
+def build_caps(spec: BodySpec):
+    pitch = spec.cap_diameter + 3.0
+    count = max(1, len(spec.pressers()))
+    return _copies(build_cap(spec), [(i * pitch, 0) for i in range(count)])
+
+
+def build_key(spec: BodySpec):
+    if not spec.dut_size:
+        raise HolderError("no board size, so there is nothing to lock")
+
+    width, thickness = spec.key_width, spec.key_thickness
+    pivot, top = spec.key_pivot, spec.key_height
+    slot = spec.screw_hole + 0.4
+    face = cq.Workplane("XZ", origin=(0, spec.key_face - spec.key_gap, 0))
+
+    bar = (face.center(0.0, (pivot + top) / 2.0)
+           .slot2D(top - pivot + width, width, 90)
+           .center(0.0, (pivot - top) / 2.0).circle(spec.screw_hole / 2.0)
+           .extrude(thickness))
+    notch = (face.center((width - slot / 2.0) / 2.0, top)
+             .slot2D(width + slot / 2.0, slot).extrude(thickness))
+    return bar.cut(notch)
 
 
 def build_feet(spec: BodySpec):
@@ -87,6 +238,9 @@ def build_feet(spec: BodySpec):
 
 def printable(spec: BodySpec):
     parts = {"holder": build_solid(spec)}
+    if spec.clamp:
+        parts.update(lid=build_lid(spec), caps=build_caps(spec),
+                     key=build_key(spec))
     if spec.feet and spec.screws:
         parts["feet"] = build_feet(spec)
     return parts
