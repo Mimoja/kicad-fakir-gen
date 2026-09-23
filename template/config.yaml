@@ -10,6 +10,14 @@
 # P160   2.03   44.5   4.00
 pogo_pin: "P75"
 
+# Which screw to mount the fakir board to the holder. Defines the heatset insert
+# SCREW  PCB_HOLE SCREW_PASSAGE INSERT_BORE INSERT_DEPTH INSERT_FLOOR HEAD_BORE   TAP  BOSS
+# M2          2.2           2.4         3.2          4.0          2.0       3.8   1.6   5.0
+# M3          3.2           3.4         4.0          6.0          3.0       5.6   2.5   7.0
+# M4          4.3           4.5         5.6          8.0          4.0       7.0   3.3   9.0
+# M5          5.3           5.5         6.4          9.5          5.0       8.5   4.2  11.0
+screw: "M3"
+
 # Which side's test points to probe, and what counts as a test point.
 test_point_side: "B.Cu"
 ref_pattern: "^TP\\d+$"
@@ -17,8 +25,6 @@ ref_pattern: "^TP\\d+$"
 # Config for the PCB generation
 pcb:
   thickness: 1.6
-  # How far the fakir board stands out past the target board, on each side
-  margin: 7.0
 
   # Clearance around the probe barrel to insert it into the PCB
   drill_hole_extra: 0.15

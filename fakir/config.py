@@ -3,18 +3,18 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-from . import pogo
+from . import pogo, screws
 from .extract import DEFAULT_REF_PATTERN
 from .model import DEFAULT_BOARD_NOTE_BOTTOM, DEFAULT_BOARD_NOTE_TOP
 
 # Every setting there is, with the value config.yaml ships with.
 DEFAULTS: Dict[str, Any] = {
     "pogo_pin": pogo.DEFAULT_KEY,
+    "screw": screws.DEFAULT_KEY,
     "test_point_side": "B.Cu",
     "ref_pattern": DEFAULT_REF_PATTERN,
     "pcb": {
         "thickness": 1.6,
-        "margin": 7.0,
         "drill_hole_extra": pogo.CLEARANCE_MM,
         "note_top": DEFAULT_BOARD_NOTE_TOP,
         "note_bottom": DEFAULT_BOARD_NOTE_BOTTOM,

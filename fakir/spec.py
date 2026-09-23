@@ -3,29 +3,17 @@ from __future__ import annotations
 import os
 from typing import List, Optional, Sequence, Tuple
 
-from . import pogo, project
+from . import pogo, project, screws
 from .extract import board_bbox_from_file, from_file
 from .model import CORNER_RADIUS_MM
 
 Point = Tuple[float, float]
 
+DEFAULT_SCREW = screws.get(screws.DEFAULT_KEY)
+
 
 class HolderError(RuntimeError):
     pass
-
-
-# Everything an M3 fixes, in mm.
-class Screw:
-    nominal_mm = 3.0
-    pcb_drill_mm = 3.2       # hole in the fixture PCB
-    clearance_mm = 3.4       # passage through plastic
-    head_mm = 5.6            # counterbore for the head
-    head_depth_mm = 3.0
-    insert_drill_mm = 4.0
-    insert_depth_mm = 6.0
-    insert_floor_mm = 3.0    # plastic under the insert
-    tap_mm = 2.5             # drill for a self-tapped hole
-    boss_mm = 7.0            # boss the insert sits in
 
 
 class BodySpec:
@@ -37,7 +25,7 @@ class BodySpec:
 
     def __init__(self, side: float, corner_radius: float,
                  pins: Sequence[Point], screws: Sequence[Point], bore: float,
-                 probe_length: float, probe_stroke: float,
+                 probe_length: float, probe_stroke: float, screw=None,
                  dut_size: Optional[Point] = None,
                  board_clearance: float = 0.4, pcb_thickness: float = 1.6,
                  border: float = 2.5, feet: bool = True,
@@ -51,7 +39,7 @@ class BodySpec:
         self.bore = bore
         self.probe_length = probe_length
         self.probe_stroke = probe_stroke
-        self.screw = Screw
+        self.screw = screw or DEFAULT_SCREW
         self.dut_size = dut_size
         self.board_clearance = board_clearance
         self.pcb_thickness = pcb_thickness
@@ -205,6 +193,7 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         bore=round(probe.guide_bore_mm(allowance), 3),
         probe_length=probe.length_mm,
         probe_stroke=probe.stroke_mm,
+        screw=screws.from_config(config),
         dut_size=_dut_size(os.path.dirname(os.path.abspath(board_path))),
         board_clearance=float(config.get("holder.board_clearance")),
         pcb_thickness=float(config.get("pcb.thickness")),

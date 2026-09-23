@@ -4,28 +4,29 @@ import os
 import sys
 from typing import Tuple
 
-from . import emit, pogo, project
+from . import emit, pogo, project, screws
 from .extract import from_file, outline_segments
 from .model import FixtureConfig
-from .spec import Screw
 
 
 def config_to_fixture(config, folder: str) -> Tuple[FixtureConfig, str]:
     source = project.for_fixture(folder)
     probe = pogo.get(config.get("pogo_pin"))
+    screw = screws.from_config(config)
     cfg = FixtureConfig(
         name=project.fixture_name(folder),
         side=config.get("test_point_side"),
         pogo_key=probe.key,
+        screw_key=screw.key,
         drill_mm=pogo.drill_from_config(config, probe),
         board_note_top=config.get("pcb.note_top"),
         board_note_bottom=config.get("pcb.note_bottom"),
-        margin_mm=float(config.get("pcb.margin")),
+        margin_mm=screw.margin_mm,
         thickness_mm=float(config.get("pcb.thickness")),
-        mount_drill_mm=Screw.pcb_drill_mm,
+        mount_drill_mm=screw.pcb_drill_mm,
         board_clearance_mm=float(config.get("holder.board_clearance")),
         body_border_mm=float(config.get("holder.body_border")),
-        boss_mm=Screw.boss_mm,
+        boss_mm=screw.boss_mm,
         model_dir=config.get("render.model_dir"),
     )
     return cfg, source.board_path

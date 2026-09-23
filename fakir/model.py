@@ -5,7 +5,7 @@ import uuid as _uuid
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-from . import pogo, stock
+from . import pogo, screws, stock
 
 CORNER_RADIUS_MM = 3.0
 
@@ -48,6 +48,7 @@ class FixtureConfig:
     name: str = "fakir"
     side: str = "B.Cu"                       # side of the source board probed
     pogo_key: str = pogo.DEFAULT_KEY
+    screw_key: str = screws.DEFAULT_KEY
     drill_mm: Optional[float] = None         # None: the probe's own
     board_note_top: str = DEFAULT_BOARD_NOTE_TOP
     board_note_bottom: str = DEFAULT_BOARD_NOTE_BOTTOM

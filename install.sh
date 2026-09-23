@@ -169,7 +169,7 @@ mkdir -p "$DEST/fakir_tools"
 if [ "$FAKIR_MODULE_SOURCE" = local ]; then
     mkdir -p "$DEST/fakir_tools/_fakir"
     # tests/test_install.py fails if this list and fakir/ diverge.
-    for f in __init__.py config.py sexpr.py model.py pogo.py stock.py \
+    for f in __init__.py config.py sexpr.py model.py pogo.py screws.py stock.py \
              geometry.py extract.py project.py emit.py workflow.py spec.py \
              parts.py body.py; do
         [ -f "$LIB/$f" ] || die "missing library module: $f"
