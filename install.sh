@@ -214,6 +214,7 @@ fill() {  # fill <template> <destination>
 }
 
 fill "$TEMPLATE/fakir_tools/pyproject.toml" "$DEST/fakir_tools/pyproject.toml"
+fill "$TEMPLATE/README.md"      "$DEST/README.md"
 
 if [ -f "$DEST/config.yaml" ]; then
     note "kept:    $NAME/config.yaml (your settings)"
