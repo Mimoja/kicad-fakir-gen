@@ -21,7 +21,7 @@ DEFAULTS: Dict[str, Any] = {
         "note_bottom": DEFAULT_BOARD_NOTE_BOTTOM,
     },
     "holder": {
-        "print_hole_allowance": 0.15,
+        "print_hole_allowance": 0.3,
         "threaded_inserts": True,
         "clamp": True,
         "rotation": 0,

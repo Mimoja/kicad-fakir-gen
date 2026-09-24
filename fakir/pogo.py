@@ -63,11 +63,15 @@ def drill_from_config(config, probe: PogoPin) -> float:
 # Barrel diameters follow the published P-series conventions.  Every probe
 # is modelled as the round-head (B1) variant; the head does not affect any
 # dimension the generator works out.
+# Barrel, tip, length and stroke as the sellers of the P series print
+# them.  P75 and P100 are the two everybody agrees on; P160 is the row to
+# doubt, several shops list its 44.5 mm body against a 4 mm stroke and
+# others put P100 numbers under the same name.
 _PINS: Sequence[PogoPin] = (
-    PogoPin("P50", "round", 0.68, 0.48, 16.40, 2.65),
-    PogoPin("P75", "round", 1.02, 0.74, 16.60, 2.65),
-    PogoPin("P100", "round", 1.36, 1.50, 33.40, 6.35),
-    PogoPin("P125", "round", 1.67, 2.00, 33.40, 6.35),
+    PogoPin("P50", "round", 0.68, 0.48, 16.35, 2.65),
+    PogoPin("P75", "round", 1.02, 0.74, 16.55, 2.65),
+    PogoPin("P100", "round", 1.36, 1.50, 33.35, 6.35),
+    PogoPin("P125", "round", 1.67, 2.00, 33.35, 6.35),
     PogoPin("P160", "round", 2.03, 2.50, 44.50, 4.00),
 )
 

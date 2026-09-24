@@ -3,11 +3,11 @@
 # Which pogo pin to use for generating
 #
 # NAME   BARREL LENGTH STROKE
-# P50    0.68   16.4   2.65
-# P75    1.02   16.6   2.65
-# P100   1.36   33.4   6.35
-# P125   1.67   33.4   6.35
-# P160   2.03   44.5   4.00
+# P50    0.68   16.35  2.65
+# P75    1.02   16.55  2.65
+# P100   1.36   33.35  6.35
+# P125   1.67   33.35  6.35
+# P160   2.03   44.50  4.00
 pogo_pin: "P75"
 
 # Which screw to mount the fakir board to the holder. Defines the heatset insert
@@ -46,7 +46,8 @@ holder:
 
   # The pogo pins would be friction fit in an ideal world,
   # however this is needed for 3d printing
-  print_hole_allowance: 0.15
+  # If supported use hole compensation in your slicer to avoice messing with this
+  print_hole_allowance: 0.3
   # As above: Margin between board and the holder it gets pressed into
   print_board_allowance: 0.50
 

@@ -5,8 +5,9 @@ FAKIR_REF="${FAKIR_REF:-main}"
 FAKIR_ZIP_URL="${FAKIR_ZIP_URL:-https://github.com/Mimoja/kicad-fakir-gen/archive/refs/heads/$FAKIR_REF.zip}"
 
 # FAKIR_HOME points at a checkout instead of downloading one; that is how
-# the generator's own tests and CI run against the working tree.
+# CI runs the installer against a working tree it has not pushed yet.
 REPO="${FAKIR_HOME:-}"
+_self="${BASH_SOURCE[0]:-$0}"
 
 NAME="fakir"
 PROJECT=""
@@ -61,6 +62,15 @@ PY
     # a GitHub zip holds one <repo>-<ref> directory
     REPO="$DOWNLOAD/$(ls "$DOWNLOAD" | head -1)"
 }
+
+# Run from a checkout, use it; piped in, there is nothing to run from.
+if [ -z "$REPO" ] && [ -f "$_self" ]; then
+    beside="$(cd "$(dirname "$_self")" && pwd)"
+    if [ -d "$beside/fakir" ] && [ -d "$beside/template" ]; then
+        REPO="$beside"
+        note "source:  $REPO"
+    fi
+fi
 
 [ -n "$REPO" ] || fetch_repo
 LIB="$REPO/fakir"
