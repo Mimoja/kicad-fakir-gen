@@ -17,6 +17,7 @@ DEFAULTS: Dict[str, Any] = {
         "thickness": 1.6,
         "margin": 6.0,
         "drill_hole_extra": pogo.CLEARANCE_MM,
+        "solder_length": 1.5,
         "note_top": DEFAULT_BOARD_NOTE_TOP,
         "note_bottom": DEFAULT_BOARD_NOTE_BOTTOM,
     },

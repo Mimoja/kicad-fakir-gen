@@ -34,6 +34,9 @@ pcb:
   # Clearance around the probe barrel to insert it into the PCB
   drill_hole_extra: 0.15
 
+  # How much barrel is left under the board to solder to
+  solder_length: 1.5
+
   note_top: "Only the pogo pins on this side"
   note_bottom: "Business logic goes on this side"
 

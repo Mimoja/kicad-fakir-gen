@@ -74,7 +74,8 @@ def render(config, folder: str) -> List[str]:
     footprint = FixtureConfig(pogo_key=probe.key).footprint_name
     target = os.path.join(models, "%s.step" % footprint)
     _step("writing the probe model", target)
-    written.append(parts.export(parts.probe_solid(probe), target))
+    solder = float(config.get("pcb.solder_length"))
+    written.append(parts.export(parts.probe_solid(probe, solder), target))
 
     placed = {child.name: child
               for child in parts.assembly(spec, printed).children}

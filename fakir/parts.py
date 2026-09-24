@@ -304,16 +304,19 @@ def assembly(spec: BodySpec, parts) -> cq.Assembly:
     return stack
 
 
-def probe_solid(probe):
+def probe_solid(probe, solder_length: float = 0.0):
     plunger_length = min(4.0, probe.stroke_mm + 1.0)
     barrel_length = max(1.0, probe.length_mm - plunger_length)
     plunger_d = max(0.2, probe.barrel_mm * 0.62)
     head_d = max(plunger_d, probe.tip_mm)
-    return (cq.Workplane("XY").circle(probe.barrel_mm / 2.0)
-            .extrude(barrel_length)
-            .faces(">Z").workplane().circle(plunger_d / 2.0)
-            .extrude(plunger_length)
-            .faces(">Z").workplane().sphere(head_d / 2.0))
+    pin = (cq.Workplane("XY").circle(probe.barrel_mm / 2.0)
+           .extrude(barrel_length)
+           .faces(">Z").workplane().circle(plunger_d / 2.0)
+           .extrude(plunger_length)
+           .faces(">Z").workplane().sphere(head_d / 2.0))
+    # z = 0 is the copper the barrel is soldered to, so the tail hangs
+    # under it and KiCad shows the probe at the height it really stands.
+    return pin.translate((0, 0, -solder_length))
 
 
 def export(part, path: str) -> str:

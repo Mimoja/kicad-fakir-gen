@@ -21,7 +21,8 @@ class HolderError(RuntimeError):
 class BodySpec:
     __slots__ = ("side", "corner_radius", "pins", "screws", "bore",
                  "probe_length", "probe_stroke", "screw", "dut_size",
-                 "print_board_allowance", "pcb_thickness", "border", "feet",
+                 "print_board_allowance", "pcb_thickness", "solder_length",
+                 "border", "feet",
                  "foot_height", "base_thickness", "guide_wall",
                  "threaded_inserts", "clamp", "rotation",
                  "tower_height", "cap_height", "fixture_size", "outline",
@@ -40,7 +41,8 @@ class BodySpec:
                  probe_length: float, probe_stroke: float, screw=None,
                  dut_size: Optional[Point] = None,
                  print_board_allowance: float = 0.5,
-                 pcb_thickness: float = 1.6, border: float = 2.5,
+                 pcb_thickness: float = 1.6, solder_length: float = 1.5,
+                 border: float = 2.5,
                  feet: bool = True,
                  foot_height: float = 8.0, base_thickness: float = 3.0,
                  guide_wall: float = 1.1, threaded_inserts: bool = True,
@@ -60,6 +62,7 @@ class BodySpec:
         self.dut_size = dut_size
         self.print_board_allowance = print_board_allowance
         self.pcb_thickness = pcb_thickness
+        self.solder_length = solder_length
         self.border = border
         self.feet = feet
         self.foot_height = foot_height
@@ -81,16 +84,19 @@ class BodySpec:
 
     @property
     def probe_stand(self) -> float:
-        return self.probe_length - self.pcb_thickness
+        return pogo.stand(self.probe_length, self.pcb_thickness,
+                          self.solder_length)
 
     @property
     def dut_height(self) -> float:
         return pogo.board_height(self.probe_length, self.probe_stroke,
-                                 self.pcb_thickness)
+                                 self.pcb_thickness, self.solder_length)
 
+    # Everything but the stroke is barrel, and a barrel that is not held
+    # walks sideways under load, so the pillar carries all of it.
     @property
     def guide_height(self) -> float:
-        return round(self.probe_stand * 2.0 / 3.0, 2)
+        return round(self.probe_stand - self.probe_stroke, 2)
 
     @property
     def pillar_diameter(self) -> float:
@@ -325,9 +331,11 @@ class BodySpec:
                        % self.rotation)
         if not self.pins:
             out.append("no probe positions; nothing to guide")
-        if self.guide_height >= self.dut_height:
-            out.append("the %.1f mm pillars reach the board at %.1f mm"
-                       % (self.guide_height, self.dut_height))
+        if self.probe_stand <= self.probe_stroke:
+            out.append("a %.2f mm probe through a %.1f mm board with %.1f mm "
+                       "left to solder has no barrel above it"
+                       % (self.probe_length, self.pcb_thickness,
+                          self.solder_length))
         if self.guide_height <= self.base_thickness:
             out.append("the pillars are no taller than the %.1f mm base"
                        % self.base_thickness)
@@ -478,6 +486,7 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         print_board_allowance=float(
             config.get("holder.print_board_allowance")),
         pcb_thickness=float(config.get("pcb.thickness")),
+        solder_length=float(config.get("pcb.solder_length")),
         border=float(config.get("holder.body_border")),
         feet=bool(config.get("holder.feet")),
         foot_height=float(config.get("holder.foot_height")),

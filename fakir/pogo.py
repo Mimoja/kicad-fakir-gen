@@ -29,8 +29,10 @@ class PogoPin:
     def pad_mm(self) -> float:
         return round(self.drill_mm + 0.70, 2)
 
-    def board_height(self, pcb_thickness: float) -> float:
-        return board_height(self.length_mm, self.stroke_mm, pcb_thickness)
+    def board_height(self, pcb_thickness: float,
+                     solder_length: float = 0.0) -> float:
+        return board_height(self.length_mm, self.stroke_mm, pcb_thickness,
+                            solder_length)
 
     def guide_bore_mm(self, allowance: float = 0.0) -> float:
         return round(self.barrel_mm + allowance, 2)
@@ -40,9 +42,16 @@ class PogoPin:
 
 
 def board_height(length_mm: float, stroke_mm: float,
-                 pcb_thickness: float) -> float:
+                 pcb_thickness: float, solder_length: float = 0.0) -> float:
     preload = round(stroke_mm * 2.0 / 3.0, 2)
-    return round(length_mm - pcb_thickness - preload, 2)
+    return round(stand(length_mm, pcb_thickness, solder_length) - preload, 2)
+
+
+# The probe drops through the fixture board and keeps `solder_length` of
+# barrel below it for the iron; what is left stands above the board.
+def stand(length_mm: float, pcb_thickness: float,
+          solder_length: float = 0.0) -> float:
+    return round(length_mm - pcb_thickness - solder_length, 2)
 
 
 def snap_to_fab_grid(value: float) -> float:

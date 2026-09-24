@@ -25,6 +25,7 @@ def config_to_fixture(config, folder: str) -> Tuple[FixtureConfig, str]:
         board_note_bottom=config.get("pcb.note_bottom"),
         margin_mm=float(config.get("pcb.margin")),
         thickness_mm=float(config.get("pcb.thickness")),
+        solder_length_mm=float(config.get("pcb.solder_length")),
         mount_drill_mm=screw.pcb_drill_mm,
         print_board_allowance_mm=float(
             config.get("holder.print_board_allowance")),

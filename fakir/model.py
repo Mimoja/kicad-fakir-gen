@@ -58,6 +58,7 @@ class FixtureConfig:
     margin_mm: float = 6.0                   # fixture past the source board
     corner_radius_mm: float = CORNER_RADIUS_MM
     thickness_mm: float = 1.6
+    solder_length_mm: float = 1.5           # barrel left under the board
     mount_drill_mm: float = 3.2
     body_border_mm: float = 2.5              # printed plate past the board
     boss_mm: float = 7.0
@@ -110,7 +111,8 @@ class FixtureConfig:
 
     @property
     def board_height(self) -> float:
-        return self.pogo.board_height(self.thickness_mm)
+        return self.pogo.board_height(self.thickness_mm,
+                                      self.solder_length_mm)
 
     @property
     def stock_mount(self):
