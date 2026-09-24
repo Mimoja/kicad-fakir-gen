@@ -1,22 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FAKIR_MODULE_SOURCE="${FAKIR_MODULE_SOURCE:-pypi}"
-FAKIR_GIT_URL="${FAKIR_GIT_URL:-https://github.com/Mimoja/kicad-fakir-gen}"
-FAKIR_GIT_REF="${FAKIR_GIT_REF:-main}"
-FAKIR_PYPI_SPEC="${FAKIR_PYPI_SPEC:-kicad-fakir-gen>=0.1}"
+FAKIR_REF="${FAKIR_REF:-main}"
+FAKIR_ZIP_URL="${FAKIR_ZIP_URL:-https://github.com/Mimoja/kicad-fakir-gen/archive/refs/heads/$FAKIR_REF.zip}"
 
-_self="${BASH_SOURCE[0]:-$0}"
-if [ -n "${FAKIR_HOME:-}" ]; then
-    REPO="$FAKIR_HOME"
-elif [ -f "$_self" ]; then
-    REPO="$(cd "$(dirname "$_self")" && pwd)"
-else
-    REPO=""
-fi
-
-LIB="$REPO/fakir"
-TEMPLATE="$REPO/template"
+# FAKIR_HOME points at a checkout instead of downloading one; that is how
+# the generator's own tests and CI run against the working tree.
+REPO="${FAKIR_HOME:-}"
 
 NAME="fakir"
 PROJECT=""
@@ -35,9 +25,6 @@ Fakir board generator setup script. Point it at a KiCad project and it will crea
 
 options:
   --name NAME     folder and fixture name (default: fakir)
-  --module-source pypi|git|local
-                  where the fixture gets the fakir library: from PyPI
-                  (default), from git, or copied in from this checkout
   --force         overwrite an existing fixture folder
   --no-env        do not create the Python environment
   -h, --help      this
@@ -47,7 +34,6 @@ EOF
 while [ $# -gt 0 ]; do
     case "$1" in
         --name)        NAME="${2:-}"; shift 2 ;;
-        --module-source) FAKIR_MODULE_SOURCE="${2:-}"; shift 2 ;;
         --force)       FORCE=1; shift ;;
         --no-env)      MAKE_ENV=0; shift ;;
         -h|--help)     usage; exit 0 ;;
@@ -60,41 +46,27 @@ done
 PYTHON="${PYTHON:-python3}"
 command -v "$PYTHON" >/dev/null 2>&1 || die "$PYTHON not found; fakir needs Python 3"
 
-case "$FAKIR_MODULE_SOURCE" in
-    local|pypi|git) ;;
-    *) die "--module-source must be local, pypi or git (got '$FAKIR_MODULE_SOURCE')" ;;
-esac
-
-have_checkout() { [ -n "$REPO" ] && [ -d "$LIB" ] && [ -d "$TEMPLATE" ]; }
-
-# Piped in (curl | bash) there is no checkout beside the script: fetch one.
-fetch_checkout() {
-    REPO="$(mktemp -d)"
-    trap 'rm -rf "$REPO"' EXIT
-    note "fetching $FAKIR_GIT_URL ($FAKIR_GIT_REF)"
-    if command -v git >/dev/null 2>&1; then
-        git clone --quiet --depth 1 --branch "$FAKIR_GIT_REF" \
-            "$FAKIR_GIT_URL" "$REPO" || die "could not clone $FAKIR_GIT_URL"
-    else
-        curl -fsSL "$FAKIR_GIT_URL/archive/$FAKIR_GIT_REF.tar.gz" \
-            | tar -xz -C "$REPO" --strip-components 1 \
-            || die "could not download $FAKIR_GIT_URL"
-    fi
-    LIB="$REPO/fakir"
-    TEMPLATE="$REPO/template"
+# The trap outlives the function, so the directory cannot be local.
+DOWNLOAD=""
+fetch_repo() {
+    DOWNLOAD="$(mktemp -d)"
+    trap 'rm -rf "$DOWNLOAD"' EXIT
+    note "source:  $FAKIR_ZIP_URL"
+    "$PYTHON" - "$FAKIR_ZIP_URL" "$DOWNLOAD" <<'PY' || die "could not download the generator"
+import io, sys, urllib.request, zipfile
+url, into = sys.argv[1], sys.argv[2]
+with urllib.request.urlopen(url) as response:
+    zipfile.ZipFile(io.BytesIO(response.read())).extractall(into)
+PY
+    # a GitHub zip holds one <repo>-<ref> directory
+    REPO="$DOWNLOAD/$(ls "$DOWNLOAD" | head -1)"
 }
 
-[ -n "$REPO" ] || fetch_checkout
-have_checkout || die \
-"cannot find the generator to copy from in ${REPO}.
-Set FAKIR_HOME to a checkout of $FAKIR_GIT_URL, or unset it to fetch one."
-
-case "$FAKIR_MODULE_SOURCE" in
-    local) FAKIR_PIP="" ;;
-    pypi)  FAKIR_PIP="$FAKIR_PYPI_SPEC" ;;
-    git)   FAKIR_PIP="kicad-fakir-gen @ git+$FAKIR_GIT_URL@$FAKIR_GIT_REF" ;;
-esac
-FAKIR_DEP="${FAKIR_PIP:+    \"$FAKIR_PIP\",}"
+[ -n "$REPO" ] || fetch_repo
+LIB="$REPO/fakir"
+TEMPLATE="$REPO/template"
+[ -d "$LIB" ] && [ -d "$TEMPLATE" ] || die \
+"$REPO does not hold the generator (no fakir/ and template/ in it)"
 
 # CadQuery needs Python 3.10; uv fetches one, pip has to find it here.
 supports_cadquery() {
@@ -167,18 +139,14 @@ fi
 rm -rf "$DEST/fakir_tools"
 mkdir -p "$DEST/fakir_tools"
 
-if [ "$FAKIR_MODULE_SOURCE" = local ]; then
-    mkdir -p "$DEST/fakir_tools/_fakir"
-    # tests/test_install.py fails if this list and fakir/ diverge.
-    for f in __init__.py config.py sexpr.py model.py pogo.py screws.py stock.py \
-             geometry.py extract.py project.py emit.py workflow.py spec.py \
-             parts.py body.py kicadcli.py; do
-        [ -f "$LIB/$f" ] || die "missing library module: $f"
-        cp "$LIB/$f" "$DEST/fakir_tools/_fakir/$f"
-    done
-else
-    note "module:  fetched from $FAKIR_MODULE_SOURCE, not copied in"
-fi
+mkdir -p "$DEST/fakir_tools/_fakir"
+# tests/test_install.py fails if this list and fakir/ diverge.
+for f in __init__.py config.py sexpr.py model.py pogo.py screws.py stock.py \
+         geometry.py extract.py project.py emit.py workflow.py spec.py \
+         parts.py body.py kicadcli.py; do
+    [ -f "$LIB/$f" ] || die "missing library module: $f"
+    cp "$LIB/$f" "$DEST/fakir_tools/_fakir/$f"
+done
 
 cp "$TEMPLATE/fakir_tools/generate.py" "$DEST/fakir_tools/generate.py"
 cp "$TEMPLATE/generate.sh"             "$DEST/generate.sh"
@@ -195,18 +163,10 @@ SLUG="$(printf '%s' "$NAME" | tr '[:upper:]_' '[:lower:]-')"
 REL_SRC="../$(basename "$SRC_PRO")"
 
 fill() {  # fill <template> <destination>
-    local dep_rule
-    if [ -n "$FAKIR_DEP" ]; then
-        dep_rule="s|^@@FAKIR_DEP@@$|$FAKIR_DEP|"
-    else
-        dep_rule="/^@@FAKIR_DEP@@$/d"
-    fi
-
     sed -e "s|@@SOURCE_PROJECT@@|$REL_SRC|g" \
         -e "s|@@SOURCE_NAME@@|$SRC_NAME|g" \
         -e "s|@@FIXTURE_NAME@@|$NAME|g" \
         -e "s|@@SLUG@@|$SLUG|g" \
-        -e "$dep_rule" \
         "$1" > "$2" || die "could not write $2"
 
     # A half-filled file would break at run time instead of here.
@@ -237,8 +197,7 @@ or install a newer Python and re-run."
         note "env:     uv not found, using venv + pip ($VENV_PYTHON)"
         ( cd "$DEST/fakir_tools" && "$VENV_PYTHON" -m venv .venv \
           && .venv/bin/python -m pip install --quiet --upgrade pip \
-          && .venv/bin/python -m pip install --quiet "cadquery>=2.5" "pyyaml>=6" \
-             ${FAKIR_PIP:+"$FAKIR_PIP"} ) \
+          && .venv/bin/python -m pip install --quiet "cadquery>=2.5" "pyyaml>=6" ) \
           || die "could not build the environment with pip"
     fi
 else

@@ -17,7 +17,6 @@ Installer Options:
 | Option | What |
 | --- | --- |
 | `--name NAME` | folder and fixture name (default `fakir`) |
-| `--module-source pypi\|git\|local` | where the fixture's environment gets the generator: PyPI (default), git, or a copy of this checkout |
 | `--force` | replace an existing folder |
 | `--no-env` | do not create the Python environment |
 

@@ -67,7 +67,7 @@ jobs:
           with open("Widget.kicad_pro", "w") as handle:
               handle.write("{}\n")
           EOF
-      - run: ./install.sh --no-env --module-source local /tmp/Widget
+      - run: FAKIR_HOME="$PWD" ./install.sh --no-env /tmp/Widget
       - run: python fakir_tools/generate.py --pcb
         working-directory: /tmp/Widget/fakir
       - name: the fixture is there
