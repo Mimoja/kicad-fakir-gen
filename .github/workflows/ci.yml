@@ -1,0 +1,90 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyflakes pycodestyle
+      - run: pyflakes fakir template
+      - run: pycodestyle --max-line-length=79 fakir template/fakir_tools
+
+  pcb:
+    # Install into a throwaway KiCad project and generate its fixture
+    # board; the PCB side needs nothing but PyYAML.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyyaml
+      - name: the template offers exactly the settings the code defaults
+        run: |
+          python - <<'EOF'
+          import yaml
+          from fakir.config import DEFAULTS
+          with open("template/config.yaml") as handle:
+              shipped = yaml.safe_load(handle.read().replace("@@", "x"))
+          assert shipped == DEFAULTS, shipped
+          EOF
+      - name: a board with three test points
+        run: |
+          mkdir -p /tmp/Widget && cd /tmp/Widget
+          python - <<'EOF'
+          FOOTPRINT = """  (footprint "TestPoint:TestPoint_Pad_D1.0mm"
+              (layer "B.Cu") (uuid "tp%(n)s") (at %(x)s %(y)s)
+              (property "Reference" "TP%(n)s" (at 0 -1 0) (layer "B.SilkS")
+                (uuid "r%(n)s") (effects (font (size 1 1) (thickness 0.15))))
+              (property "Value" "SIG%(n)s" (at 0 1 0) (layer "B.Fab")
+                (hide yes) (uuid "v%(n)s")
+                (effects (font (size 1 1) (thickness 0.15))))
+              (pad "1" smd circle (at 0 0) (size 1 1) (layers "B.Cu")
+                (uuid "p%(n)s")))
+          """
+          board = ['(kicad_pcb (version 20260206) (generator "ci")',
+                   '  (generator_version "10.0")',
+                   '  (general (thickness 1.6) (legacy_teardrops no))',
+                   '  (paper "A4")',
+                   '  (layers (0 "F.Cu" signal) (2 "B.Cu" signal)',
+                   '    (5 "F.SilkS" user) (7 "B.SilkS" user)',
+                   '    (25 "Edge.Cuts" user) (33 "B.Fab" user))',
+                   '  (gr_rect (start 0 0) (end 40 30)',
+                   '    (stroke (width 0.1) (type solid)) (fill no)',
+                   '    (layer "Edge.Cuts") (uuid "edge"))']
+          for n, (x, y) in enumerate([(10, 10), (20, 20), (30, 12)], 1):
+              board.append(FOOTPRINT % {"n": n, "x": x, "y": y})
+          with open("Widget.kicad_pcb", "w") as handle:
+              handle.write("\n".join(board) + "\n)\n")
+          with open("Widget.kicad_pro", "w") as handle:
+              handle.write("{}\n")
+          EOF
+      - run: ./install.sh --no-env --module-source local /tmp/Widget
+      - run: python fakir_tools/generate.py --pcb
+        working-directory: /tmp/Widget/fakir
+      - name: the fixture is there
+        working-directory: /tmp/Widget/fakir
+        run: |
+          ls fakir.kicad_pcb fakir.kicad_sch fakir.kicad_pro fp-lib-table \
+             fakir.pretty/PogoPin_P75.kicad_mod
+          grep -q "PogoPin_P75" fakir.kicad_pcb
+          test "$(grep -c 'footprint "fakir:PogoPin_P75"' fakir.kicad_pcb)" = 3
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: python -m twine check dist/*

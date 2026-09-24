@@ -3,11 +3,11 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kicad-fakir-board-generator"
-version = "1.0.0"
-description = "KiCad Fakir-Board Generator: builds a pogo-pin test fixture -- PCB, schematic and printed holder -- from a KiCad board's test points"
+name = "kicad-fakir-gen"
+dynamic = ["version"]
+description = "Pogo-pin test fixture generator for KiCad: PCB, schematic and 3D-printed holder from a board's test points"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 keywords = ["kicad", "pcb", "test-fixture", "pogo-pin", "bed-of-nails"]
 classifiers = [
@@ -16,14 +16,20 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
 ]
-dependencies = ["pyyaml>=6"]
+dependencies = [
+    "cadquery>=2.5",
+    "pyyaml>=6",
+]
 
 [project.urls]
 Homepage = "https://github.com/Mimoja/kicad-fakir-gen"
 Issues = "https://github.com/Mimoja/kicad-fakir-gen/issues"
 
 [project.optional-dependencies]
-dev = ["pyflakes"]
+dev = ["pyflakes", "pycodestyle", "build"]
 
 [tool.setuptools]
 packages = ["fakir"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fakir.__version__" }

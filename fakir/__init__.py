@@ -4,7 +4,7 @@ from .extract import ExtractionError, from_file
 from .model import FixtureConfig, TestPoint
 from .project import ProjectError, Source, for_fixture
 
-__version__ = "1.0.0"
+__version__ = "0.1.0"
 
 __all__ = ["FixtureConfig", "FixtureFiles", "TestPoint", "Source",
            "ExtractionError", "HolderError", "ProjectError", "build",

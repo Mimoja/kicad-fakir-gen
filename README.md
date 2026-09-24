@@ -14,10 +14,10 @@ curl -fsSL https://raw.githubusercontent.com/Mimoja/kicad-fakir-gen/main/install
 ```
 
 Installer Options:
-| Option | Use |
+| Option | What |
 | --- | --- |
 | `--name NAME` | folder and fixture name (default `fakir`) |
-| `--module-source local\|pypi\|git` | copy the library in (default) or list it as a dependency |
+| `--module-source pypi\|git\|local` | where the fixture's environment gets the generator: PyPI (default), git, or a copy of this checkout |
 | `--force` | replace an existing folder |
 | `--no-env` | do not create the Python environment |
 
@@ -27,7 +27,6 @@ Installer Options:
 cd fakir
 ./generate.sh --pcb   # after changing the board or config.yaml
 ./generate.sh --3d    # after --pcb; both flags together do both
-                      # -> PrintFiles/ (each part, and plate.3mf with all of them)
 ```
 
 ## AI Disclaimer

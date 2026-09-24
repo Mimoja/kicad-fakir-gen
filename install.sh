@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FAKIR_MODULE_SOURCE="${FAKIR_MODULE_SOURCE:-local}"
+FAKIR_MODULE_SOURCE="${FAKIR_MODULE_SOURCE:-pypi}"
 FAKIR_GIT_URL="${FAKIR_GIT_URL:-https://github.com/Mimoja/kicad-fakir-gen}"
 FAKIR_GIT_REF="${FAKIR_GIT_REF:-main}"
-FAKIR_PYPI_SPEC="${FAKIR_PYPI_SPEC:-kicad-fakir-board-generator}"
+FAKIR_PYPI_SPEC="${FAKIR_PYPI_SPEC:-kicad-fakir-gen>=0.1}"
 
 _self="${BASH_SOURCE[0]:-$0}"
 if [ -n "${FAKIR_HOME:-}" ]; then
@@ -35,9 +35,9 @@ Fakir board generator setup script. Point it at a KiCad project and it will crea
 
 options:
   --name NAME     folder and fixture name (default: fakir)
-  --module-source local|pypi|git
-                  where the fixture gets the fakir library: copied in from
-                  this checkout (default), or fetched into its environment
+  --module-source pypi|git|local
+                  where the fixture gets the fakir library: from PyPI
+                  (default), from git, or copied in from this checkout
   --force         overwrite an existing fixture folder
   --no-env        do not create the Python environment
   -h, --help      this
@@ -90,10 +90,11 @@ have_checkout || die \
 Set FAKIR_HOME to a checkout of $FAKIR_GIT_URL, or unset it to fetch one."
 
 case "$FAKIR_MODULE_SOURCE" in
-    local) FAKIR_DEP="" ;;
-    pypi)  FAKIR_DEP="    \"$FAKIR_PYPI_SPEC\"," ;;
-    git)   FAKIR_DEP="    \"kicad-fakir-board-generator @ git+$FAKIR_GIT_URL@$FAKIR_GIT_REF\"," ;;
+    local) FAKIR_PIP="" ;;
+    pypi)  FAKIR_PIP="$FAKIR_PYPI_SPEC" ;;
+    git)   FAKIR_PIP="kicad-fakir-gen @ git+$FAKIR_GIT_URL@$FAKIR_GIT_REF" ;;
 esac
+FAKIR_DEP="${FAKIR_PIP:+    \"$FAKIR_PIP\",}"
 
 # CadQuery needs Python 3.10; uv fetches one, pip has to find it here.
 supports_cadquery() {
@@ -236,7 +237,8 @@ or install a newer Python and re-run."
         note "env:     uv not found, using venv + pip ($VENV_PYTHON)"
         ( cd "$DEST/fakir_tools" && "$VENV_PYTHON" -m venv .venv \
           && .venv/bin/python -m pip install --quiet --upgrade pip \
-          && .venv/bin/python -m pip install --quiet "cadquery>=2.5" "pyyaml>=6" ) \
+          && .venv/bin/python -m pip install --quiet "cadquery>=2.5" "pyyaml>=6" \
+             ${FAKIR_PIP:+"$FAKIR_PIP"} ) \
           || die "could not build the environment with pip"
     fi
 else
