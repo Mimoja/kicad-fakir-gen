@@ -29,7 +29,7 @@ DEFAULTS: Dict[str, Any] = {
         "tower_height": 15.0,
         "presser_cap_height": 20.0,
         "base_thickness": 3.0,
-        "print_board_allowance": 0.60,
+        "print_board_allowance": 0.50,
         "body_border": 2.5,
         "wall_lip": 2.0,
         "feet": True,
