@@ -53,7 +53,7 @@ holder:
   # Values up to 0.5mm or more might be needed for P75 / P50
   print_hole_allowance: 0.0
   # As above: Margin between board and the holder it gets pressed into
-  print_board_allowance: 0.60
+  print_board_allowance: 0.50
 
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
@@ -70,8 +70,7 @@ holder:
   # The wall around the target PCB
   body_border: 2.5
 
-  # How far that wall reaches past the board it holds, so the board
-  # drops into a pocket instead of balancing on the probes
+  # How far that wall reaches past the tips of the pogo pins, so the board drops into a pocket instead of balancing on the probes
   wall_lip: 2.0
 
   # Spacing under the fakir board
