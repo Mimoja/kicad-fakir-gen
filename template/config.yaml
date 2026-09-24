@@ -50,9 +50,9 @@ holder:
   # The pogo pins would be friction fit in an ideal world,
   # however this is needed for 3d printing
   # If supported use hole compensation in your slicer to avoice messing with this
-  print_hole_allowance: 0.3
+  print_hole_allowance: 0.4
   # As above: Margin between board and the holder it gets pressed into
-  print_board_allowance: 0.50
+  print_board_allowance: 0.60
 
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
