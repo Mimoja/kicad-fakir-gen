@@ -23,7 +23,7 @@ class BodySpec:
                  "probe_key", "hole_allowance",
                  "probe_length", "probe_stroke", "screw", "dut_size",
                  "print_board_allowance", "pcb_thickness", "solder_length",
-                 "border", "feet",
+                 "border", "wall_lip", "feet",
                  "foot_height", "base_thickness", "guide_wall",
                  "threaded_inserts", "clamp", "rotation",
                  "tower_height", "cap_height", "fixture_size", "outline",
@@ -47,6 +47,7 @@ class BodySpec:
                  border: float = 2.5,
                  feet: bool = True,
                  foot_height: float = 8.0, base_thickness: float = 3.0,
+                 wall_lip: float = 2.0,
                  guide_wall: float = 1.1, threaded_inserts: bool = True,
                  clamp: bool = True, rotation: float = 0.0,
                  tower_height: float = 20.0, cap_height: float = 14.0,
@@ -68,6 +69,7 @@ class BodySpec:
         self.pcb_thickness = pcb_thickness
         self.solder_length = solder_length
         self.border = border
+        self.wall_lip = wall_lip
         self.feet = feet
         self.foot_height = foot_height
         self.base_thickness = base_thickness
@@ -172,7 +174,7 @@ class BodySpec:
 
     @property
     def wall_top(self) -> float:
-        return self.dut_height + self.pcb_thickness / 2.0
+        return self.dut_height + self.pcb_thickness + self.wall_lip
 
     # Hinge posts, lid and key are built in a frame turned by rotation, so
     # the clamp can swing to whichever edge of the board has nothing tall
@@ -353,6 +355,9 @@ class BodySpec:
             out.append("the %.1f mm screw bosses stand into the board at "
                        "%.1f mm" % (self.boss_height, self.dut_height))
         if self.clamp:
+            if self.wall_top >= self.lid_z:
+                out.append("the wall stands %.1f mm, into the lid at %.1f mm"
+                           % (self.wall_top, self.lid_z))
             if self.cap_height <= self.cap_taper + 2.0:
                 out.append("a %.1f mm cap is all point and no thread"
                            % self.cap_height)
@@ -500,6 +505,7 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         pcb_thickness=float(config.get("pcb.thickness")),
         solder_length=float(config.get("pcb.solder_length")),
         border=float(config.get("holder.body_border")),
+        wall_lip=float(config.get("holder.wall_lip")),
         feet=bool(config.get("holder.feet")),
         foot_height=float(config.get("holder.foot_height")),
         base_thickness=float(config.get("holder.base_thickness")),
