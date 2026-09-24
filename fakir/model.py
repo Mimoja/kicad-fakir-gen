@@ -61,7 +61,7 @@ class FixtureConfig:
     mount_drill_mm: float = 3.2
     body_border_mm: float = 2.5              # printed plate past the board
     boss_mm: float = 7.0
-    board_clearance_mm: float = 0.4
+    board_clearance_mm: float = 0.8
     probe_model: bool = True                 # reference a STEP per footprint
     model_dir: str = "3dshapes"              # KiCad's folder for them
     source_bbox: Optional[Tuple[float, float, float, float]] = None

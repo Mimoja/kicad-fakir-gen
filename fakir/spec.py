@@ -39,7 +39,7 @@ class BodySpec:
                  pins: Sequence[Point], screws: Sequence[Point], bore: float,
                  probe_length: float, probe_stroke: float, screw=None,
                  dut_size: Optional[Point] = None,
-                 board_clearance: float = 0.4, pcb_thickness: float = 1.6,
+                 board_clearance: float = 0.8, pcb_thickness: float = 1.6,
                  border: float = 2.5, feet: bool = True,
                  foot_height: float = 8.0, base_thickness: float = 3.0,
                  guide_wall: float = 1.1, threaded_inserts: bool = True,

@@ -37,7 +37,7 @@ holder:
 
   # The pogo pins would be friction fit in an ideal world,
   # however this is needed for 3d printing
-  print_hole_allowance: 0.10
+  print_hole_allowance: 0.20
 
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
@@ -54,7 +54,7 @@ holder:
 
   # Clearance around the target board 
   # *not* influenced by 3D printer settings above
-  board_clearance: 0.40
+  board_clearance: 0.80
 
   body_border: 2.5
   feet: true
