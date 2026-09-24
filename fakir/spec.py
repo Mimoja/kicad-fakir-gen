@@ -23,7 +23,7 @@ class BodySpec:
                  "probe_length", "probe_stroke", "screw", "dut_size",
                  "board_clearance", "pcb_thickness", "border", "feet",
                  "foot_height", "base_thickness", "guide_wall",
-                 "threaded_inserts", "clamp",
+                 "threaded_inserts", "clamp", "clamp_rotation",
                  "clamp_tower_height", "cap_height", "fixture_size", "outline",
                  "outline_loop", "_holes")
 
@@ -43,7 +43,7 @@ class BodySpec:
                  border: float = 2.5, feet: bool = True,
                  foot_height: float = 8.0, base_thickness: float = 3.0,
                  guide_wall: float = 1.1, threaded_inserts: bool = True,
-                 clamp: bool = True,
+                 clamp: bool = True, clamp_rotation: float = 0.0,
                  clamp_tower_height: float = 20.0, cap_height: float = 14.0,
                  fixture_size: Optional[Point] = None,
                  outline: Optional[Sequence[Point]] = None,
@@ -66,6 +66,7 @@ class BodySpec:
         self.guide_wall = guide_wall
         self.threaded_inserts = threaded_inserts
         self.clamp = clamp and dut_size is not None
+        self.clamp_rotation = clamp_rotation % 360.0
         self.clamp_tower_height = clamp_tower_height
         self.cap_height = cap_height
         self.fixture_size = fixture_size or (side, side)
@@ -156,11 +157,37 @@ class BodySpec:
     def wall_top(self) -> float:
         return self.dut_height + self.pcb_thickness / 2.0
 
+    # Hinge posts, lid and key are built in a frame turned by
+    # clamp_rotation, so the whole clamp can be swung to whichever edge of
+    # the board has nothing tall on it.  Quarter turns only: the lid is a
+    # rectangle and has to stay over the board.
+    @property
+    def turned(self) -> bool:
+        return self.clamp_rotation in (90.0, 270.0)
+
+    def to_clamp(self, point: Point) -> Point:
+        x, y = point
+        if self.clamp_rotation == 90.0:
+            return (y, -x)
+        if self.clamp_rotation == 180.0:
+            return (-x, -y)
+        if self.clamp_rotation == 270.0:
+            return (-y, x)
+        return (x, y)
+
+    @property
+    def clamp_footprint(self) -> Optional[Point]:
+        if not self.dut_size:
+            return None
+        width, depth = self.board_footprint
+        return (depth, width) if self.turned else (width, depth)
+
     @property
     def ring(self) -> float:
         if not self.dut_size:
             return self.boss
-        spare = (self.fixture_size[1] - self.board_footprint[1]) / 2.0
+        across = self.fixture_size[0] if self.turned else self.fixture_size[1]
+        spare = (across - self.clamp_footprint[1]) / 2.0
         return max(2.0, min(self.boss, spare))
 
     # the hinge
@@ -172,7 +199,7 @@ class BodySpec:
     def hinge_posts(self) -> List[Point]:
         if not self.dut_size or not self.screws:
             return []
-        y = self.board_footprint[1] / 2.0 + self.ring / 2.0
+        y = self.clamp_footprint[1] / 2.0 + self.ring / 2.0
         corner = max(abs(x) for x, _ in self.screws)
         x = corner - self.boss / 2.0 - 2.0 - self.post_size[0] / 2.0
         return [(-x, y), (x, y)]
@@ -188,7 +215,7 @@ class BodySpec:
     def hinge_axis(self) -> Point:
         if not self.dut_size:
             return (0.0, 0.0)
-        return (self.board_footprint[1] / 2.0 + self.ring,
+        return (self.clamp_footprint[1] / 2.0 + self.ring,
                 self.lid_z + self.lid_thickness + self.hinge_diameter / 2.0)
 
     @property
@@ -200,7 +227,7 @@ class BodySpec:
             return None
         inner = min(abs(x) - self.hinge_ear / 2.0 - 0.4
                     for x in self.hinge_ears())
-        edge = self.board_footprint[0] / 2.0 + self.border
+        edge = self.clamp_footprint[0] / 2.0 + self.border
         half = min(inner, edge)
         return (-half, half)
 
@@ -218,12 +245,12 @@ class BodySpec:
     def lid_rib(self) -> float:
         if not self.dut_size:
             return 10.0
-        half_w = self.board_footprint[0] / 2.0 + self.border
-        half_d = self.board_footprint[1] / 2.0 + self.ring
+        half_w = self.clamp_footprint[0] / 2.0 + self.border
+        half_d = self.clamp_footprint[1] / 2.0 + self.ring
         # A hole is in the frame when it is within a rib of either pair of
         # edges, so the rib has to reach the hole furthest from both.
         reach = max([min(half_w - abs(x), half_d - abs(y))
-                     for x, y in self.presser_holes()] or [8.0])
+                     for x, y in self.lid_holes()] or [8.0])
         return reach + self.screw.tap_mm / 2.0 + 2.0
 
     @property
@@ -249,6 +276,9 @@ class BodySpec:
                                   self.presser_pitch)
         return self._holes
 
+    def lid_holes(self) -> List[Point]:
+        return [self.to_clamp(hole) for hole in self.presser_holes()]
+
     def pressers(self) -> List[Point]:
         # Where the four caps are drawn: the hole nearest each corner.
         holes = self.presser_holes()
@@ -263,7 +293,7 @@ class BodySpec:
     def key_face(self) -> float:
         if not self.dut_size:
             return 0.0
-        return -(self.board_footprint[1] / 2.0 + self.ring)
+        return -(self.clamp_footprint[1] / 2.0 + self.ring)
 
     @property
     def key_height(self) -> float:
@@ -289,6 +319,10 @@ class BodySpec:
 
     def check(self) -> List[str]:
         out: List[str] = []
+        if self.clamp_rotation not in (0.0, 90.0, 180.0, 270.0):
+            out.append("clamp_rotation is %.1f degrees; the lid can only be "
+                       "turned by 0, 90, 180 or 270"
+                       % self.clamp_rotation)
         if not self.pins:
             out.append("no probe positions; nothing to guide")
         if self.guide_height >= self.dut_height:
@@ -449,6 +483,7 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         base_thickness=float(config.get("holder.base_thickness")),
         threaded_inserts=bool(config.get("holder.threaded_inserts")),
         clamp=bool(config.get("holder.clamp")),
+        clamp_rotation=float(config.get("holder.clamp_rotation")),
         clamp_tower_height=float(config.get("holder.clamp_tower_height")),
         cap_height=float(config.get("holder.presser_cap_height")),
     )

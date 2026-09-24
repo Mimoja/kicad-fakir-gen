@@ -47,6 +47,13 @@ def _plane(z):
     return cq.Workplane("XY", origin=(0, 0, z))
 
 
+# From the clamp's own frame into the fixture's.
+def _swing(spec: BodySpec, part):
+    if not spec.clamp_rotation:
+        return part
+    return part.rotate((0, 0, 0), (0, 0, 1), spec.clamp_rotation)
+
+
 def _screw_hole(workplane, spec):
     if spec.threaded_inserts:
         return workplane.cboreHole(spec.screw_hole, spec.insert_drill,
@@ -112,34 +119,35 @@ def _add_clamp(spec: BodySpec, holder):
     axis_y, axis_z = spec.hinge_axis
     ear = spec.hinge_ear
 
-    holder = holder.union(
-        cq.Workplane("XY").pushPoints(spec.hinge_posts())
-        .slot2D(post_x, post_y).extrude(spec.lid_z))
+    posts = (cq.Workplane("XY").pushPoints(spec.hinge_posts())
+             .slot2D(post_x, post_y).extrude(spec.lid_z))
+    bores = []
     for x, y in spec.hinge_posts():
         # The ear is the hull from the post's top face up to the barrel, so
         # the neck tapers into it.
         profile = _hull([(axis_y, axis_z, spec.hinge_diameter)],
                         [((y - post_y / 2.0, spec.lid_z),
                           (y + post_y / 2.0, spec.lid_z))])
-        holder = (holder
-                  .union(cq.Workplane("YZ", origin=(x - ear / 2.0, 0, 0))
-                         .placeSketch(profile).extrude(ear))
-                  .cut(_rod_x(x - ear / 2.0 - 1.0, axis_y, axis_z,
-                              spec.screw.tap_mm, ear + 2.0)))
-
-    return (holder
-            .union(_rod_y(0.0, spec.key_face, spec.key_pivot,
-                          spec.key_width * 0.6, spec.ring))
-            .cut(_rod_y(0.0, spec.key_face - 1.0, spec.key_pivot,
-                        spec.screw.tap_mm, spec.ring + 2.0)))
+        posts = posts.union(cq.Workplane("YZ", origin=(x - ear / 2.0, 0, 0))
+                            .placeSketch(profile).extrude(ear))
+        bores.append(_rod_x(x - ear / 2.0 - 1.0, axis_y, axis_z,
+                            spec.screw.tap_mm, ear + 2.0))
+    posts = posts.union(_rod_y(0.0, spec.key_face, spec.key_pivot,
+                               spec.key_width * 0.6, spec.ring))
+    bores.append(_rod_y(0.0, spec.key_face - 1.0, spec.key_pivot,
+                        spec.screw.tap_mm, spec.ring + 2.0))
+    holder = holder.union(_swing(spec, posts))
+    for bore in bores:
+        holder = holder.cut(_swing(spec, bore))
+    return holder
 
 
 def build_lid(spec: BodySpec):
     if not spec.dut_size:
         raise HolderError("no board size, so there is nothing to clamp")
 
-    width = spec.board_footprint[0] + 2.0 * spec.border
-    depth = spec.board_footprint[1] + 2.0 * spec.ring
+    width = spec.clamp_footprint[0] + 2.0 * spec.border
+    depth = spec.clamp_footprint[1] + 2.0 * spec.ring
     thick = spec.lid_thickness
     axis_y = spec.hinge_axis[0]
     axis_z = thick + spec.hinge_diameter / 2.0                   # lid-local
@@ -155,12 +163,13 @@ def build_lid(spec: BodySpec):
 
     # Tap-sized through holes: the presser screws cut their own thread, so
     # each one stays at whatever height it is wound to.
-    lid = (lid.faces(">Z").workplane().pushPoints(spec.presser_holes())
+    lid = (lid.faces(">Z").workplane().pushPoints(spec.lid_holes())
            .hole(spec.screw.tap_mm))
 
     # Access holes over the stack screws the lid covers.
     margin = spec.insert_drill / 2.0 + 1.5
-    covered = [(x, y) for x, y in spec.screws
+    covered = [spec.to_clamp(screw) for screw in spec.screws]
+    covered = [(x, y) for x, y in covered
                if abs(x) <= width / 2.0 - margin
                and abs(y) <= depth / 2.0 - margin]
     if covered:
@@ -282,11 +291,12 @@ def assembly(spec: BodySpec, parts) -> cq.Assembly:
     if "lid" in parts:
         board_top = spec.dut_height + spec.pcb_thickness
         caps = _copies(build_cap(spec), spec.pressers())
+        swing = cq.Location((0, 0, 0), (0, 0, 1), spec.clamp_rotation)
         stack.add(parts["lid"], name="lid", color=_LID,
-                  loc=cq.Location((0, 0, spec.lid_z)))
+                  loc=cq.Location((0, 0, spec.lid_z)) * swing)
         stack.add(caps, name="caps", color=_LID,
                   loc=cq.Location((0, 0, board_top)))
-        stack.add(parts["key"], name="key", color=_LID)
+        stack.add(parts["key"], name="key", color=_LID, loc=swing)
     if "feet" in parts:
         drop = -(spec.pcb_thickness + spec.foot_height)
         stack.add(parts["feet"], name="feet", color=_FEET,

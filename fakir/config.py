@@ -23,6 +23,7 @@ DEFAULTS: Dict[str, Any] = {
         "print_hole_allowance": 0.20,
         "threaded_inserts": True,
         "clamp": True,
+        "clamp_rotation": 0,
         "clamp_tower_height": 15.0,
         "presser_cap_height": 20.0,
         "base_thickness": 3.0,

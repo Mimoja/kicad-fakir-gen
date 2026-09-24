@@ -44,6 +44,10 @@ holder:
 
   # Should there be a lid?
   clamp: true
+
+  # Quarter turns of the lid, the hinge posts and the key, to
+  # swing them away from whatever stands tall on the board
+  clamp_rotation: 0
   clamp_tower_height: 15.0
 
   # We domt want to touch the target board with m3 screws, so we render caps
