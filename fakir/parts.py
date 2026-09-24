@@ -94,8 +94,54 @@ def build_solid(spec: BodySpec):
     # Probe bores, then the stack screws' holes down through each boss.
     holder = (holder.copyWorkplane(_plane(spec.guide_height))
               .pushPoints(spec.pins).hole(spec.bore))
-    return _screw_hole(holder.copyWorkplane(_plane(spec.boss_height))
-                       .pushPoints(spec.screws), spec)
+    holder = _screw_hole(holder.copyWorkplane(_plane(spec.boss_height))
+                         .pushPoints(spec.screws), spec)
+    return _engrave(spec, holder)
+
+
+LABEL_DEPTH = 0.6
+LABEL_SIZE = 4.0
+
+
+def _label_spot(spec: BodySpec):
+    if spec.outline_loop:
+        loop = spec.outline_loop
+        gap = spec.print_board_allowance / 2.0
+        x0, x1 = min(p[0] for p in loop) - gap, max(p[0] for p in loop) + gap
+        y0, y1 = min(p[1] for p in loop) - gap, max(p[1] for p in loop) + gap
+    else:
+        width, depth = spec.body_size
+        x0, x1 = -width / 2.0 + spec.border, width / 2.0 - spec.border
+        y0, y1 = -depth / 2.0 + spec.border, depth / 2.0 - spec.border
+
+    standing = [(x, y, spec.pillar_diameter / 2.0) for x, y in spec.pins]
+    standing += [(x, y, spec.boss / 2.0) for x, y in spec.screws]
+    standing = [(y, r) for x, y, r in standing
+                if x0 <= x <= x1 and y0 <= y <= y1]
+    below = min((y - r for y, r in standing), default=y1)
+    above = max((y + r for y, r in standing), default=y0)
+
+    low = (y0, max(y0, min(y1, below - 0.5)))
+    high = (min(y1, max(y0, above + 0.5)), y1)
+    band = low if (low[1] - low[0]) > (high[1] - high[0]) else high
+    room = band[1] - band[0]
+    if room < 2.0:
+        return None
+    # Letters run about 0.62 of their height wide.
+    size = min(LABEL_SIZE, room - 1.0,
+               (x1 - x0 - 2.0) / (0.62 * len(spec.label)))
+    return (x0 + x1) / 2.0, (band[0] + band[1]) / 2.0, size
+
+
+def _engrave(spec: BodySpec, holder):
+    spot = _label_spot(spec)
+    if spot is None:
+        return holder
+    x, y, size = spot
+    return holder.cut(
+        cq.Workplane("XY", origin=(x, y, spec.base_thickness - LABEL_DEPTH))
+        .text(spec.label, size, LABEL_DEPTH + 1.0,
+              halign="center", valign="center"))
 
 
 def _wall(spec: BodySpec, plate):

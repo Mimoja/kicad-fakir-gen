@@ -20,6 +20,7 @@ class HolderError(RuntimeError):
 
 class BodySpec:
     __slots__ = ("side", "corner_radius", "pins", "screws", "bore",
+                 "probe_key", "hole_allowance",
                  "probe_length", "probe_stroke", "screw", "dut_size",
                  "print_board_allowance", "pcb_thickness", "solder_length",
                  "border", "feet",
@@ -39,6 +40,7 @@ class BodySpec:
     def __init__(self, side: float, corner_radius: float,
                  pins: Sequence[Point], screws: Sequence[Point], bore: float,
                  probe_length: float, probe_stroke: float, screw=None,
+                 probe_key: str = "", hole_allowance: float = 0.0,
                  dut_size: Optional[Point] = None,
                  print_board_allowance: float = 0.5,
                  pcb_thickness: float = 1.6, solder_length: float = 1.5,
@@ -56,6 +58,8 @@ class BodySpec:
         self.pins = list(pins)
         self.screws = list(screws)
         self.bore = bore
+        self.probe_key = probe_key
+        self.hole_allowance = hole_allowance
         self.probe_length = probe_length
         self.probe_stroke = probe_stroke
         self.screw = screw or DEFAULT_SCREW
@@ -97,6 +101,12 @@ class BodySpec:
     @property
     def guide_height(self) -> float:
         return round(self.probe_stand - self.probe_stroke, 2)
+
+    # Cut into the base so a fixture on the shelf says what fits it.
+    @property
+    def label(self) -> str:
+        return "%s  hole %.2f  board %.2f" % (
+            self.probe_key, self.hole_allowance, self.print_board_allowance)
 
     @property
     def pillar_diameter(self) -> float:
@@ -477,6 +487,8 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         pins=[(p.x_mm - cx, -(p.y_mm - cy)) for p in probes],
         screws=[(p.x_mm - cx, -(p.y_mm - cy)) for p in mounts],
         bore=round(probe.guide_bore_mm(allowance), 3),
+        probe_key=probe.key,
+        hole_allowance=allowance,
         probe_length=probe.length_mm,
         probe_stroke=probe.stroke_mm,
         screw=screws.from_config(config),
