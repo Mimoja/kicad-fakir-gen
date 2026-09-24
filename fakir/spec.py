@@ -21,10 +21,10 @@ class HolderError(RuntimeError):
 class BodySpec:
     __slots__ = ("side", "corner_radius", "pins", "screws", "bore",
                  "probe_length", "probe_stroke", "screw", "dut_size",
-                 "board_clearance", "pcb_thickness", "border", "feet",
+                 "print_board_allowance", "pcb_thickness", "border", "feet",
                  "foot_height", "base_thickness", "guide_wall",
-                 "threaded_inserts", "clamp", "clamp_rotation",
-                 "clamp_tower_height", "cap_height", "fixture_size", "outline",
+                 "threaded_inserts", "clamp", "rotation",
+                 "tower_height", "cap_height", "fixture_size", "outline",
                  "outline_loop", "_holes")
 
     # Sizes that are the same on every fixture.
@@ -39,12 +39,13 @@ class BodySpec:
                  pins: Sequence[Point], screws: Sequence[Point], bore: float,
                  probe_length: float, probe_stroke: float, screw=None,
                  dut_size: Optional[Point] = None,
-                 board_clearance: float = 0.8, pcb_thickness: float = 1.6,
-                 border: float = 2.5, feet: bool = True,
+                 print_board_allowance: float = 0.5,
+                 pcb_thickness: float = 1.6, border: float = 2.5,
+                 feet: bool = True,
                  foot_height: float = 8.0, base_thickness: float = 3.0,
                  guide_wall: float = 1.1, threaded_inserts: bool = True,
-                 clamp: bool = True, clamp_rotation: float = 0.0,
-                 clamp_tower_height: float = 20.0, cap_height: float = 14.0,
+                 clamp: bool = True, rotation: float = 0.0,
+                 tower_height: float = 20.0, cap_height: float = 14.0,
                  fixture_size: Optional[Point] = None,
                  outline: Optional[Sequence[Point]] = None,
                  outline_loop: Optional[Sequence[Point]] = None):
@@ -57,7 +58,7 @@ class BodySpec:
         self.probe_stroke = probe_stroke
         self.screw = screw or DEFAULT_SCREW
         self.dut_size = dut_size
-        self.board_clearance = board_clearance
+        self.print_board_allowance = print_board_allowance
         self.pcb_thickness = pcb_thickness
         self.border = border
         self.feet = feet
@@ -66,8 +67,8 @@ class BodySpec:
         self.guide_wall = guide_wall
         self.threaded_inserts = threaded_inserts
         self.clamp = clamp and dut_size is not None
-        self.clamp_rotation = clamp_rotation % 360.0
-        self.clamp_tower_height = clamp_tower_height
+        self.rotation = rotation % 360.0
+        self.tower_height = tower_height
         self.cap_height = cap_height
         self.fixture_size = fixture_size or (side, side)
         # The board under test, centred on the origin: its outline as a
@@ -143,8 +144,8 @@ class BodySpec:
     def board_footprint(self) -> Optional[Point]:
         if not self.dut_size:
             return None
-        return (self.dut_size[0] + self.board_clearance,
-                self.dut_size[1] + self.board_clearance)
+        return (self.dut_size[0] + self.print_board_allowance,
+                self.dut_size[1] + self.print_board_allowance)
 
     @property
     def body_size(self) -> Point:
@@ -157,21 +158,20 @@ class BodySpec:
     def wall_top(self) -> float:
         return self.dut_height + self.pcb_thickness / 2.0
 
-    # Hinge posts, lid and key are built in a frame turned by
-    # clamp_rotation, so the whole clamp can be swung to whichever edge of
-    # the board has nothing tall on it.  Quarter turns only: the lid is a
-    # rectangle and has to stay over the board.
+    # Hinge posts, lid and key are built in a frame turned by rotation, so
+    # the clamp can swing to whichever edge of the board has nothing tall
+    # on it.  Quarter turns only: the lid is a rectangle over the board.
     @property
     def turned(self) -> bool:
-        return self.clamp_rotation in (90.0, 270.0)
+        return self.rotation in (90.0, 270.0)
 
     def to_clamp(self, point: Point) -> Point:
         x, y = point
-        if self.clamp_rotation == 90.0:
+        if self.rotation == 90.0:
             return (y, -x)
-        if self.clamp_rotation == 180.0:
+        if self.rotation == 180.0:
             return (-x, -y)
-        if self.clamp_rotation == 270.0:
+        if self.rotation == 270.0:
             return (-y, x)
         return (x, y)
 
@@ -239,7 +239,7 @@ class BodySpec:
 
     @property
     def lid_z(self) -> float:
-        return self.dut_height + self.pcb_thickness + self.clamp_tower_height
+        return self.dut_height + self.pcb_thickness + self.tower_height
 
     @property
     def lid_rib(self) -> float:
@@ -319,10 +319,10 @@ class BodySpec:
 
     def check(self) -> List[str]:
         out: List[str] = []
-        if self.clamp_rotation not in (0.0, 90.0, 180.0, 270.0):
-            out.append("clamp_rotation is %.1f degrees; the lid can only be "
+        if self.rotation not in (0.0, 90.0, 180.0, 270.0):
+            out.append("rotation is %.1f degrees; the lid can only be "
                        "turned by 0, 90, 180 or 270"
-                       % self.clamp_rotation)
+                       % self.rotation)
         if not self.pins:
             out.append("no probe positions; nothing to guide")
         if self.guide_height >= self.dut_height:
@@ -338,9 +338,9 @@ class BodySpec:
             if self.cap_height <= self.cap_taper + 2.0:
                 out.append("a %.1f mm cap is all point and no thread"
                            % self.cap_height)
-            if self.clamp_tower_height < 2.0:
+            if self.tower_height < 2.0:
                 out.append("%.1f mm under the lid leaves nowhere for the "
-                           "board's own parts" % self.clamp_tower_height)
+                           "board's own parts" % self.tower_height)
             if self.ring < 4.0:
                 out.append("only %.1f mm of fixture board outside the board "
                            "under test: the hinge posts have nothing to "
@@ -475,7 +475,8 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         dut_size=dut_size,
         outline=outline,
         outline_loop=loop,
-        board_clearance=float(config.get("holder.board_clearance")),
+        print_board_allowance=float(
+            config.get("holder.print_board_allowance")),
         pcb_thickness=float(config.get("pcb.thickness")),
         border=float(config.get("holder.body_border")),
         feet=bool(config.get("holder.feet")),
@@ -483,7 +484,7 @@ def spec_from_board(board_path: str, config) -> BodySpec:
         base_thickness=float(config.get("holder.base_thickness")),
         threaded_inserts=bool(config.get("holder.threaded_inserts")),
         clamp=bool(config.get("holder.clamp")),
-        clamp_rotation=float(config.get("holder.clamp_rotation")),
-        clamp_tower_height=float(config.get("holder.clamp_tower_height")),
+        rotation=float(config.get("holder.rotation")),
+        tower_height=float(config.get("holder.tower_height")),
         cap_height=float(config.get("holder.presser_cap_height")),
     )

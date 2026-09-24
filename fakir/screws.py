@@ -24,10 +24,6 @@ class Screw:
         self.tap_mm = tap_mm                    # drill for a self-tapped hole
         self.boss_mm = boss_mm                  # boss the insert sits in
 
-    @property
-    def margin_mm(self) -> float:
-        return self.boss_mm
-
     def __repr__(self) -> str:
         return "Screw(%s)" % self.key
 

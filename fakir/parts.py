@@ -49,9 +49,9 @@ def _plane(z):
 
 # From the clamp's own frame into the fixture's.
 def _swing(spec: BodySpec, part):
-    if not spec.clamp_rotation:
+    if not spec.rotation:
         return part
-    return part.rotate((0, 0, 0), (0, 0, 1), spec.clamp_rotation)
+    return part.rotate((0, 0, 0), (0, 0, 1), spec.rotation)
 
 
 def _screw_hole(workplane, spec):
@@ -109,7 +109,7 @@ def _wall(spec: BodySpec, plate):
                 .offset2D(grow, "arc").extrude(height))
 
     # Clipped to the plate's outline, so an odd board cannot push it off.
-    return (prism(spec.border).cut(prism(spec.board_clearance / 2.0))
+    return (prism(spec.border).cut(prism(spec.print_board_allowance / 2.0))
             .intersect(cq.Workplane("XY").placeSketch(plate)
                        .extrude(spec.wall_top)))
 
@@ -291,7 +291,7 @@ def assembly(spec: BodySpec, parts) -> cq.Assembly:
     if "lid" in parts:
         board_top = spec.dut_height + spec.pcb_thickness
         caps = _copies(build_cap(spec), spec.pressers())
-        swing = cq.Location((0, 0, 0), (0, 0, 1), spec.clamp_rotation)
+        swing = cq.Location((0, 0, 0), (0, 0, 1), spec.rotation)
         stack.add(parts["lid"], name="lid", color=_LID,
                   loc=cq.Location((0, 0, spec.lid_z)) * swing)
         stack.add(caps, name="caps", color=_LID,

@@ -427,8 +427,8 @@ def _holder_outline(cfg: FixtureConfig, outline: Outline,
     if not dut:
         return []
     centre_x, centre_y = outline.centre
-    half_w = (dut[0] + cfg.board_clearance_mm) / 2.0 + cfg.body_border_mm
-    half_d = (dut[1] + cfg.board_clearance_mm) / 2.0 + cfg.body_border_mm
+    half_w = (dut[0] + cfg.print_board_allowance_mm) / 2.0 + cfg.body_border_mm
+    half_d = (dut[1] + cfg.print_board_allowance_mm) / 2.0 + cfg.body_border_mm
 
     nodes: List[Node] = []
     for layer in (cfg.note_layer, cfg.silk_layer):

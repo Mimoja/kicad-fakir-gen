@@ -55,13 +55,13 @@ class FixtureConfig:
     screw_key: str = screws.DEFAULT_KEY
     board_note_top: str = DEFAULT_BOARD_NOTE_TOP
     board_note_bottom: str = DEFAULT_BOARD_NOTE_BOTTOM
-    margin_mm: float = 7.0                   # fixture past the source board
+    margin_mm: float = 6.0                   # fixture past the source board
     corner_radius_mm: float = CORNER_RADIUS_MM
     thickness_mm: float = 1.6
     mount_drill_mm: float = 3.2
     body_border_mm: float = 2.5              # printed plate past the board
     boss_mm: float = 7.0
-    board_clearance_mm: float = 0.8
+    print_board_allowance_mm: float = 0.5
     probe_model: bool = True                 # reference a STEP per footprint
     model_dir: str = "3dshapes"              # KiCad's folder for them
     source_bbox: Optional[Tuple[float, float, float, float]] = None

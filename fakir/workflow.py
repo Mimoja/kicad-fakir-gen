@@ -23,10 +23,11 @@ def config_to_fixture(config, folder: str) -> Tuple[FixtureConfig, str]:
         screw_key=screw.key,
         board_note_top=config.get("pcb.note_top"),
         board_note_bottom=config.get("pcb.note_bottom"),
-        margin_mm=screw.margin_mm,
+        margin_mm=float(config.get("pcb.margin")),
         thickness_mm=float(config.get("pcb.thickness")),
         mount_drill_mm=screw.pcb_drill_mm,
-        board_clearance_mm=float(config.get("holder.board_clearance")),
+        print_board_allowance_mm=float(
+            config.get("holder.print_board_allowance")),
         body_border_mm=float(config.get("holder.body_border")),
         boss_mm=screw.boss_mm,
         model_dir=config.get("render.model_dir"),

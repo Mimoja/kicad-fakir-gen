@@ -26,6 +26,11 @@ ref_pattern: "^TP\\d+$"
 pcb:
   thickness: 1.6
 
+  # How far the fakir board stands out past the target board.
+  # It carries the mounting screws, so it cannot go much below
+  # the screw's own head.
+  margin: 6.0
+
   # Clearance around the probe barrel to insert it into the PCB
   drill_hole_extra: 0.15
 
@@ -34,10 +39,16 @@ pcb:
 
 # 3d printed holder
 holder:
+  # Swing the lid, the hinge posts and the key away from whatever
+  # stands tall on the board: 0, 90, 180 or 270 degrees
+  rotation: 0
+  tower_height: 15.0
 
   # The pogo pins would be friction fit in an ideal world,
   # however this is needed for 3d printing
-  print_hole_allowance: 0.20
+  print_hole_allowance: 0.15
+  # As above: Margin between board and the holder it gets pressed into
+  print_board_allowance: 0.50
 
   # Add threaded inserts or screw directly into the plastic
   threaded_inserts: true
@@ -45,22 +56,16 @@ holder:
   # Should there be a lid?
   clamp: true
 
-  # Quarter turns of the lid, the hinge posts and the key, to
-  # swing them away from whatever stands tall on the board
-  clamp_rotation: 0
-  clamp_tower_height: 15.0
-
   # We domt want to touch the target board with m3 screws, so we render caps
   presser_cap_height: 20.0
 
   # Increase if the holder flexes
   base_thickness: 3.0
 
-  # Clearance around the target board 
-  # *not* influenced by 3D printer settings above
-  board_clearance: 0.80
-
+  # The wall around the target PCB
   body_border: 2.5
+
+  # Spacing under the fakir board
   feet: true
   foot_height: 8.0
 
